@@ -23,9 +23,7 @@ def similarity(left: Item, right: Item) -> float:
         else 0.0
     )
     shared = len(left_content & right_content)
-    content_overlap = (
-        shared / min(len(left_content), len(right_content)) if shared >= 3 else 0.0
-    )
+    content_overlap = shared / min(len(left_content), len(right_content)) if shared >= 3 else 0.0
     return max(title_jaccard, content_overlap * 0.85)
 
 

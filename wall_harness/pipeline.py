@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from .cluster import cluster_items
+from .delivery import deliver_edition
 from .models import Item, WallEdition, WallSpec
 from .providers import Analyzer, analyzer_from_spec
 from .ranking import rank_items
@@ -81,3 +82,6 @@ class WallPipeline:
             path.write_text(content, encoding="utf-8")
             written.append(path)
         return written
+
+    def deliver(self, edition: WallEdition) -> None:
+        edition.delivery_receipts = deliver_edition(edition, self.spec.delivery)

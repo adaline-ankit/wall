@@ -24,6 +24,8 @@ WallSpec ──► source plugins ──► Item[] ──► cluster ──► d
 - `KnowledgeState` owns exact and concept-level novelty plus explicit feedback. Its SQLite schema is
   private to that adapter and migrates older local databases in place.
 - `WallEdition` is the stable output passed to Markdown, HTML, and JSON renderers.
+- `delivery` owns opt-in side effects. It returns per-target receipts so a webhook or SMTP outage
+  never turns a successfully built local edition into an invisible failure.
 - `web.app` exposes the same application contracts through a localhost-only FastAPI service. The
   dashboard never reimplements ranking or writes an invalid spec.
 

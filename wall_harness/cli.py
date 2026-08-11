@@ -63,7 +63,12 @@ def run(
         typer.echo(f"Selected {len(edition.items)} of {edition.discovered_count} discovered items")
         return
     paths = pipeline.write(edition)
+    pipeline.deliver(edition)
     typer.echo(f"Built {len(edition.items)}-item wall: {', '.join(str(path) for path in paths)}")
+    for receipt in edition.delivery_receipts:
+        typer.echo(
+            f"Delivery {receipt.target}: {receipt.status}{f' ({receipt.detail})' if receipt.detail else ''}"
+        )
 
 
 @app.command()

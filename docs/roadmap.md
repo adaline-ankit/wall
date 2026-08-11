@@ -14,7 +14,7 @@
 
 ## Later — delivery and community
 
-- Email, webhook, and read-later adapters
+- Read-later adapters
 - A shareable WallSpec registry
 - Multi-wall local dashboard
 - Optional encrypted sync without making cloud accounts mandatory

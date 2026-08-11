@@ -99,6 +99,7 @@ def create_app(
             pipeline = make_pipeline(spec)
             edition = pipeline.run(use_llm=request.use_llm)
             pipeline.write(edition)
+            pipeline.deliver(edition)
         except Exception as exc:
             raise HTTPException(status_code=502, detail=str(exc)) from exc
         latest_path.parent.mkdir(parents=True, exist_ok=True)

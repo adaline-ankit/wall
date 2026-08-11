@@ -34,6 +34,7 @@ personal daily diff                    local knowledge state
 - Local SQLite concept memory so follow-up coverage is less novel than a genuinely new subject.
 - Optional analysis through OpenAI, Anthropic, or local Ollama; **no LLM or API key is required**.
 - Markdown, JSON, and a polished static HTML wall you can open anywhere.
+- Opt-in webhook and SMTP email delivery with credentials read from environment variables.
 - Source and analyzer protocols designed for plugins rather than a hard-coded crawler.
 
 Wall is an early MVP. It does not yet crawl arbitrary pages, learn implicit preferences, deliver
@@ -111,6 +112,7 @@ learning:
 delivery:
   formats: [markdown, html, json]
   output_dir: .wall/output
+  targets: [] # Optional webhook or email targets; see below.
 
 llm:
   provider: none
@@ -132,6 +134,26 @@ wall serve WALL.YAML               Open the interactive local dashboard
 The dashboard runs on `127.0.0.1:8765` by default. It can build editions, edit and validate the
 WallSpec, filter the daily signal, and record `save`, `hide`, `already know`, or `more like this`
 feedback. Feedback stays in the local SQLite knowledge database and changes future ranking.
+
+### Delivery targets
+
+```yaml
+delivery:
+  formats: [markdown, html]
+  output_dir: .wall/output
+  targets:
+    - type: webhook
+      url: https://hooks.example.com/wall
+    - type: email
+      to: reader@example.com
+      from_address: wall@example.com
+      smtp_host: smtp.example.com
+      username_env: WALL_SMTP_USER
+      password_env: WALL_SMTP_PASSWORD
+```
+
+Delivery is disabled by default. Failures are recorded as receipts without discarding the locally
+built edition. WallSpec contains environment-variable names, never SMTP credentials.
 
 Run Wall from cron, launchd, systemd, or GitHub Actions. The `delivery.schedule` field is
 documentary in v0.1; Wall intentionally does not install background jobs on your machine.

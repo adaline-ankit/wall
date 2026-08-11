@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from hashlib import sha256
 
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, Field, HttpUrl, field_validator, model_validator
 
 
 class Topic(BaseModel):
@@ -41,10 +41,33 @@ class LearningSpec(BaseModel):
         return value
 
 
+class DeliveryTarget(BaseModel):
+    type: str
+    url: HttpUrl | None = None
+    to: str | None = None
+    from_address: str | None = None
+    smtp_host: str | None = None
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    starttls: bool = True
+    username_env: str | None = None
+    password_env: str | None = None
+
+    @model_validator(mode="after")
+    def validate_target(self) -> DeliveryTarget:
+        if self.type == "webhook" and self.url is None:
+            raise ValueError("webhook delivery requires url")
+        if self.type == "email" and not all((self.to, self.from_address, self.smtp_host)):
+            raise ValueError("email delivery requires to, from_address, and smtp_host")
+        if self.type not in {"webhook", "email"}:
+            raise ValueError("delivery target type must be webhook or email")
+        return self
+
+
 class DeliverySpec(BaseModel):
     formats: list[str] = Field(default_factory=lambda: ["markdown", "html"])
     output_dir: str = ".wall/output"
     schedule: str | None = None
+    targets: list[DeliveryTarget] = Field(default_factory=list)
 
     @field_validator("formats")
     @classmethod
@@ -121,6 +144,12 @@ class RankedItem(BaseModel):
     analysis: str | None = None
 
 
+class DeliveryReceipt(BaseModel):
+    target: str
+    status: str
+    detail: str | None = None
+
+
 class WallEdition(BaseModel):
     wall_name: str
     goal: str
@@ -129,3 +158,4 @@ class WallEdition(BaseModel):
     discovered_count: int
     clustered_count: int
     source_failures: list[str] = Field(default_factory=list)
+    delivery_receipts: list[DeliveryReceipt] = Field(default_factory=list)
