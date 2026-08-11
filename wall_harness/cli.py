@@ -66,5 +66,23 @@ def run(
     typer.echo(f"Built {len(edition.items)}-item wall: {', '.join(str(path) for path in paths)}")
 
 
+@app.command()
+def serve(
+    spec_path: Annotated[Path, typer.Argument(help="Path to a WallSpec YAML")],
+    host: Annotated[
+        str, typer.Option(help="Interface to bind; local-only by default")
+    ] = "127.0.0.1",
+    port: Annotated[int, typer.Option(help="Local dashboard port", min=1, max=65535)] = 8765,
+) -> None:
+    """Open the interactive local Wall dashboard."""
+    import uvicorn
+
+    from .web import create_app
+
+    load_spec(spec_path)
+    typer.echo(f"Wall is ready at http://{host}:{port}")
+    uvicorn.run(create_app(spec_path), host=host, port=port, log_level="warning")
+
+
 if __name__ == "__main__":
     app()

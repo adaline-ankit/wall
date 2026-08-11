@@ -53,6 +53,7 @@ pip install -e .
 wall init wall.yaml
 wall validate wall.yaml
 wall run wall.yaml
+wall serve wall.yaml
 open .wall/output/index.html
 ```
 
@@ -125,7 +126,12 @@ wall init [PATH] [--example NAME]  Create an editable example
 wall validate WALL.YAML            Validate without touching the network
 wall run WALL.YAML [--no-llm]      Build one edition
 wall run WALL.YAML --dry-run       Discover and rank without rendering
+wall serve WALL.YAML               Open the interactive local dashboard
 ```
+
+The dashboard runs on `127.0.0.1:8765` by default. It can build editions, edit and validate the
+WallSpec, filter the daily signal, and record `save`, `hide`, `already know`, or `more like this`
+feedback. Feedback stays in the local SQLite knowledge database and changes future ranking.
 
 Run Wall from cron, launchd, systemd, or GitHub Actions. The `delivery.schedule` field is
 documentary in v0.1; Wall intentionally does not install background jobs on your machine.

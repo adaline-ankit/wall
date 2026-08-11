@@ -13,6 +13,7 @@ WallSpec ──► source plugins ──► Item[] ──► cluster ──► d
                                                               │
                                                               ▼
                                                WallEdition ──► renderers
+                                                              └──► local web API + dashboard
 ```
 
 ## Contracts
@@ -22,6 +23,8 @@ WallSpec ──► source plugins ──► Item[] ──► cluster ──► d
 - `Analyzer.analyze(Item, WallSpec) -> str` is the LLM boundary.
 - `KnowledgeState` owns local seen/unseen memory. Its SQLite schema is private to that adapter.
 - `WallEdition` is the stable output passed to Markdown, HTML, and JSON renderers.
+- `web.app` exposes the same application contracts through a localhost-only FastAPI service. The
+  dashboard never reimplements ranking or writes an invalid spec.
 
 Discovery does not rank. Providers do not discover or decide what is eligible. Renderers do not
 reach back into state. These boundaries keep hosted AI optional and make ranking inspectable.

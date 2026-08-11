@@ -9,7 +9,11 @@ from .models import WallSpec
 
 
 def load_spec(path: Path) -> WallSpec:
-    raw: Any = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return parse_spec(path.read_text(encoding="utf-8"))
+
+
+def parse_spec(content: str) -> WallSpec:
+    raw: Any = yaml.safe_load(content)
     if not isinstance(raw, dict):
         raise ValueError("WallSpec must be a YAML object")
     return WallSpec.model_validate(raw)
