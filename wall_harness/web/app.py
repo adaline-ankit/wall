@@ -9,6 +9,7 @@ import zipfile
 from base64 import b64decode
 from collections.abc import Callable
 from hashlib import sha256
+from html import escape
 from io import BytesIO
 from pathlib import Path
 from typing import Literal
@@ -362,16 +363,19 @@ def create_app(
         sources = draft["sources"]
         assert isinstance(sources, list)
         source_links = "".join(
-            f'<li><a href="{source["url"]}">{source["title"]}</a></li>'
+            f'<li><a href="{escape(str(source["url"]), quote=True)}">'
+            f"{escape(str(source['title']))}</a></li>"
             for source in sources
             if isinstance(source, dict) and source.get("url")
         )
+        title = escape(str(draft["title"]))
+        body = escape(str(draft["body"])).replace("\n", "<br>\n")
         return HTMLResponse(
             "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' "
             "content='width=device-width, initial-scale=1'><title>"
-            f"{draft['title']} — Margin</title><link rel='stylesheet' href='/static/app.css'></head>"
+            f"{title} — Margin</title><link rel='stylesheet' href='/static/app.css'></head>"
             "<body class='public-post'><main><p class='eyebrow'>Published from Margin</p>"
-            f"<h1>{draft['title']}</h1><article>{draft['body']}</article>"
+            f"<h1>{title}</h1><article>{body}</article>"
             f"<section><h2>Sources</h2><ul>{source_links}</ul></section></main></body></html>"
         )
 

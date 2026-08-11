@@ -58,6 +58,10 @@ def test_reading_entry_can_gather_notes_tasks_and_a_draft(tmp_path: Path) -> Non
         f"/api/reading/entries/{entry_id}/notes",
         json={"body": "The important distinction is measuring outcomes, not model fluency."},
     )
+    highlight = client.post(
+        f"/api/reading/entries/{entry_id}/highlights",
+        json={"quote": "Measure outcomes, not model fluency.", "note": "The line to cite later."},
+    )
     task = client.post(
         "/api/reading/tasks",
         json={"title": "Compare this with our harness evaluation loop", "entry_id": entry_id},
@@ -68,11 +72,13 @@ def test_reading_entry_can_gather_notes_tasks_and_a_draft(tmp_path: Path) -> Non
     )
 
     assert note.status_code == 201
+    assert highlight.status_code == 201
     assert task.status_code == 201
     assert draft.status_code == 201
     detail = client.get(f"/api/reading/entries/{entry_id}")
     assert detail.status_code == 200
     assert detail.json()["notes"][0]["body"].startswith("The important distinction")
+    assert detail.json()["highlights"][0]["quote"] == "Measure outcomes, not model fluency."
     assert detail.json()["tasks"][0]["title"].startswith("Compare this")
     assert detail.json()["drafts"][0]["title"] == "What evaluation-driven agents get right"
 
@@ -116,6 +122,36 @@ def test_weekly_review_and_publication_keep_private_notes_private(tmp_path: Path
     assert public_page.status_code == 200
     assert "A short public synthesis." in public_page.text
     assert "Private working note" not in public_page.text
+
+
+def test_published_post_escapes_user_supplied_content(tmp_path: Path) -> None:
+    client = client_for(tmp_path)
+    entry = client.post(
+        "/api/reading/entries",
+        json={
+            "title": "<script>entry()</script>",
+            "url": "https://example.com/?q=one&two=three",
+            "source": "Research",
+            "origin": "manual",
+        },
+    ).json()
+    draft = client.post(
+        "/api/reading/drafts",
+        json={
+            "title": "<script>title()</script>",
+            "body": "<img src=x onerror=alert(1)>",
+            "entry_ids": [entry["id"]],
+        },
+    ).json()
+
+    published = client.post(f"/api/reading/drafts/{draft['id']}/publish")
+    public_page = client.get(f"/read/{published.json()['slug']}")
+
+    assert "<script>" not in public_page.text
+    assert "<img " not in public_page.text
+    assert "&lt;script&gt;title()&lt;/script&gt;" in public_page.text
+    assert "&lt;img src=x onerror=alert(1)&gt;" in public_page.text
+    assert "?q=one&amp;two=three" in public_page.text
 
 
 def test_markdown_export_contains_private_workspace_content(tmp_path: Path) -> None:

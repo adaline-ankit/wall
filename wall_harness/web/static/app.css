@@ -154,6 +154,8 @@ dialog::backdrop { background: rgb(22 29 23 / 74%); backdrop-filter: blur(3px); 
 .detail-section blockquote { margin: 0 0 var(--space-3); border-left: 3px solid var(--lemon); padding: var(--space-3) var(--space-4); background: #f5f4ee; }
 .detail-section blockquote p { margin: 0; }
 .highlight footer { margin-top: var(--space-2); color: var(--subtle); font: .75rem/1.4 var(--sans); }
+.highlight-form { display: grid; grid-template-columns: 1fr 1fr auto; align-items: end; gap: var(--space-3); margin-top: var(--space-4); }
+.highlight-form .field textarea { min-height: 4.5rem; }
 .muted-copy { color: var(--subtle); }
 .inline-form { display: grid; grid-template-columns: 1fr auto; gap: var(--space-4); margin-top: var(--space-4); }
 .draft-shell { width: min(62rem, calc(100% - 2rem)); }
@@ -204,6 +206,7 @@ dialog::backdrop { background: rgb(22 29 23 / 74%); backdrop-filter: blur(3px); 
   .hero h1 { font-size: clamp(3.25rem, 17vw, 4.5rem); }
   .panel-heading { align-items: start; flex-direction: column; }
   .inline-form { grid-template-columns: 1fr; }
+  .highlight-form { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .button { transition: none; } }
