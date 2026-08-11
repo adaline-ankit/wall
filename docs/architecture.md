@@ -21,7 +21,8 @@ WallSpec ──► source plugins ──► Item[] ──► cluster ──► d
 - `WallSpec` is the user-owned, versioned declaration. Pydantic validates it at the edge.
 - `Source.fetch(SourceSpec) -> list[Item]` is the discovery plugin interface.
 - `Analyzer.analyze(Item, WallSpec) -> str` is the LLM boundary.
-- `KnowledgeState` owns local seen/unseen memory. Its SQLite schema is private to that adapter.
+- `KnowledgeState` owns exact and concept-level novelty plus explicit feedback. Its SQLite schema is
+  private to that adapter and migrates older local databases in place.
 - `WallEdition` is the stable output passed to Markdown, HTML, and JSON renderers.
 - `web.app` exposes the same application contracts through a localhost-only FastAPI service. The
   dashboard never reimplements ranking or writes an invalid spec.

@@ -106,3 +106,30 @@ def test_positive_feedback_boosts_related_items(tmp_path: Path) -> None:
     assert "matches your feedback" in next(
         result.reasons for result in after if result.item == related
     )
+
+
+def test_concept_novelty_recognizes_related_coverage(tmp_path: Path) -> None:
+    previous = Item.create(
+        title="Acme sparse attention model",
+        url="https://example.com/old",
+        summary="A long context architecture using sparse attention routing.",
+        source="test",
+    )
+    follow_up = Item.create(
+        title="Acme publishes architecture details",
+        url="https://example.com/new",
+        summary="The model uses sparse attention routing for long context.",
+        source="test",
+    )
+    unrelated = Item.create(
+        title="A compiler release",
+        url="https://example.com/compiler",
+        summary="New static analysis tools for Rust.",
+        source="test",
+    )
+    with KnowledgeState(tmp_path / "state.db") as state:
+        state.remember("test-wall", [previous])
+        related_novelty = state.concept_novelty("test-wall", follow_up)
+        unrelated_novelty = state.concept_novelty("test-wall", unrelated)
+    assert 0 < related_novelty < unrelated_novelty
+    assert unrelated_novelty == 1

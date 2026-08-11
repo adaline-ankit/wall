@@ -29,9 +29,9 @@ personal daily diff                    local knowledge state
 - A versioned YAML **WallSpec** for goals, weighted topics, exclusions, sources, learning depth,
   ranking policy, providers, and delivery formats.
 - RSS/Atom, Hacker News, GitHub search, OpenReview, and readable web-page discovery.
-- URL deduplication plus lightweight title clustering for repeated coverage.
+- URL deduplication plus content-aware clustering for differently worded coverage.
 - Transparent ranking using topical match, recency, source weight, and personal novelty.
-- Local SQLite memory so yesterday's story is less valuable today.
+- Local SQLite concept memory so follow-up coverage is less novel than a genuinely new subject.
 - Optional analysis through OpenAI, Anthropic, or local Ollama; **no LLM or API key is required**.
 - Markdown, JSON, and a polished static HTML wall you can open anywhere.
 - Source and analyzer protocols designed for plugins rather than a hard-coded crawler.

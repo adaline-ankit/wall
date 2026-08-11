@@ -23,3 +23,17 @@ def test_keeps_distinct_items() -> None:
         make_item("Language model inference engine", "https://two.test"),
     ]
     assert cluster_items(items) == items
+
+
+def test_clusters_different_headlines_about_the_same_concept() -> None:
+    first = make_item(
+        "Acme launches its newest model",
+        "https://one.test",
+        "The Acme release uses sparse mixture of experts routing for efficient inference.",
+    )
+    second = make_item(
+        "Sparse expert routing reaches Acme production",
+        "https://two.test",
+        "Acme describes mixture of experts inference in its new model release.",
+    )
+    assert len(cluster_items([first, second], threshold=0.5)) == 1

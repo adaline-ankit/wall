@@ -4,6 +4,7 @@ import re
 import sqlite3
 from pathlib import Path
 
+from .cluster import tokens
 from .models import Item
 
 
@@ -18,10 +19,18 @@ class KnowledgeState:
                 wall_name TEXT NOT NULL,
                 item_id TEXT NOT NULL,
                 title TEXT NOT NULL,
+                summary TEXT NOT NULL DEFAULT '',
                 first_seen TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (wall_name, item_id)
             )"""
         )
+        seen_columns = {
+            str(row[1]) for row in self.connection.execute("PRAGMA table_info(seen_items)")
+        }
+        if "summary" not in seen_columns:
+            self.connection.execute(
+                "ALTER TABLE seen_items ADD COLUMN summary TEXT NOT NULL DEFAULT ''"
+            )
         self.connection.execute(
             """CREATE TABLE IF NOT EXISTS feedback (
                 wall_name TEXT NOT NULL,
@@ -41,10 +50,32 @@ class KnowledgeState:
         ).fetchone()
         return 0.0 if row else 1.0
 
+    def concept_novelty(self, wall_name: str, item: Item) -> float:
+        if self.novelty(wall_name, item) == 0:
+            return 0.0
+        document = tokens(f"{item.title} {item.summary}")
+        if not document:
+            return 1.0
+        rows = self.connection.execute(
+            """SELECT title, summary FROM seen_items
+               WHERE wall_name = ? ORDER BY first_seen DESC LIMIT 500""",
+            (wall_name,),
+        ).fetchall()
+        similarities = []
+        for title, summary in rows:
+            known = tokens(f"{title} {summary}")
+            if known:
+                similarities.append(len(document & known) / len(document | known))
+        closest = max(similarities, default=0.0)
+        if closest < 0.25:
+            return 1.0
+        return round(max(0.0, 1 - closest), 4)
+
     def remember(self, wall_name: str, items: list[Item]) -> None:
         self.connection.executemany(
-            "INSERT OR IGNORE INTO seen_items(wall_name, item_id, title) VALUES (?, ?, ?)",
-            [(wall_name, item.id, item.title) for item in items],
+            """INSERT OR IGNORE INTO seen_items(wall_name, item_id, title, summary)
+               VALUES (?, ?, ?, ?)""",
+            [(wall_name, item.id, item.title, item.summary) for item in items],
         )
         self.connection.commit()
 

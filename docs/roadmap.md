@@ -10,7 +10,6 @@
 
 - Explicit like/hide/known feedback events
 - Embedding-assisted semantic clustering behind a local-first interface
-- Concept-level novelty rather than URL-level seen state
 - Evidence-backed LLM scoring as an optional second-stage reranker
 
 ## Later — delivery and community
