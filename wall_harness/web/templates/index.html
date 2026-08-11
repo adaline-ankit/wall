@@ -3,107 +3,112 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Your programmable information wall" />
-    <title>Wall — subscribe to intent</title>
+    <meta name="description" content="A private home for what you read, think, and publish." />
+    <title>Margin — reading to writing</title>
     <link rel="stylesheet" href="/static/app.css" />
   </head>
   <body>
-    <a class="skip-link" href="#edition">Skip to your edition</a>
-    <div class="app-shell">
-      <aside class="rail" aria-label="Primary navigation">
-        <a class="brand" href="/" title="Wall home">W<span>·</span><span class="sr-only">Wall home</span></a>
-        <nav>
-          <a class="rail-link is-active" href="#edition" aria-label="01 Today" title="Today">01</a>
-          <a class="rail-link" href="#intent" aria-label="02 Edit intent" title="Edit intent">02</a>
-          <a class="rail-link" href="#signals" aria-label="03 Signals" title="Signals">03</a>
+    <a class="skip-link" href="#main-content">Skip to workspace</a>
+    <div class="workspace-shell">
+      <header class="topbar">
+        <a class="wordmark" href="/" aria-label="Margin home">margin<span>.</span></a>
+        <nav aria-label="Workspace navigation">
+          <a class="nav-link is-active" href="#today">Today</a>
+          <a class="nav-link" href="#inbox">Reading</a>
+          <a class="nav-link" href="#studio">Writing</a>
         </nav>
-        <button class="theme-toggle" type="button" aria-label="Toggle color theme">◐</button>
-      </aside>
+        <div class="topbar-actions">
+          <a class="quiet-link" href="/api/reading/export">Export</a>
+          <button id="capture-button" class="button button-primary" type="button"><span>+ </span>Save something</button>
+        </div>
+      </header>
 
-      <main>
-        <header class="masthead">
+      <main id="main-content">
+        <section id="today" class="hero">
           <div>
-            <p class="eyebrow">Personal intelligence briefing</p>
-            <h1 aria-label="Your daily intent, made visible.">Your daily intent,<br /><em>made visible.</em></h1>
+            <p id="date-line" class="eyebrow">Your private reading practice</p>
+            <h1>Your reading,<br /><em>made useful.</em></h1>
+            <p class="hero-copy">A quiet home for the articles you keep, the thoughts they start, and the work they become.</p>
           </div>
-          <div class="masthead-actions">
-            <label id="wall-picker" class="wall-picker" hidden>
-              <span>Active wall</span>
-              <select id="wall-switch" aria-label="Choose a wall"></select>
-            </label>
-            <p id="edition-date" class="date-stamp">Not built yet</p>
-            <button id="run-wall" class="run-button" type="button">
-              <span>Build today’s wall</span><span aria-hidden="true">↗</span>
-            </button>
-          </div>
-        </header>
-
-        <section class="intent-strip" aria-labelledby="wall-name">
-          <div>
-            <p class="section-number">The subscription</p>
-            <h2 id="wall-name">Loading your WallSpec…</h2>
-          </div>
-          <p id="wall-goal" class="goal-copy">Reading your intent from disk.</p>
-          <dl class="wall-metrics">
-            <div><dt>Topics</dt><dd id="topic-count">—</dd></div>
-            <div><dt>Sources</dt><dd id="source-count">—</dd></div>
-            <div><dt>Depth</dt><dd id="learning-depth">—</dd></div>
-          </dl>
+          <aside class="hero-note" aria-label="Today's invitation">
+            <p class="eyebrow">Start here</p>
+            <p>Save the one thing you want to return to.</p>
+            <button id="hero-capture" class="text-link" type="button">Put it in the margin <span aria-hidden="true">↗</span></button>
+          </aside>
         </section>
 
         <div id="notice" class="notice" role="status" aria-live="polite"></div>
 
-        <section id="edition" class="edition" aria-labelledby="edition-title">
-          <div class="section-heading">
-            <div>
-              <p class="section-number">01 / Today</p>
-              <h2 id="edition-title">Your signal</h2>
+        <section class="overview-grid" aria-label="Your workspace overview">
+          <section class="panel panel-focus" aria-labelledby="focus-title">
+            <div class="panel-heading">
+              <div><p class="eyebrow">Reading queue</p><h2 id="focus-title">Worth your attention</h2></div>
+              <button class="text-link" type="button" data-scroll="inbox">Open library <span aria-hidden="true">↘</span></button>
             </div>
-            <div class="filters" role="group" aria-label="Filter edition">
-              <button class="filter is-active" type="button" data-filter="all">All</button>
-              <button class="filter" type="button" data-filter="new">New to me</button>
-              <button class="filter" type="button" data-filter="saved">Saved</button>
-            </div>
-          </div>
-          <div id="edition-content" class="edition-content">
-            <div class="empty-state">
-              <p class="empty-mark" aria-hidden="true">⌁</p>
-              <h3>Nothing noisy. Nothing generic.</h3>
-              <p>Build your first edition and Wall will surface only what clears your intent threshold.</p>
-            </div>
-          </div>
+            <div id="focus-list" class="focus-list" aria-live="polite"></div>
+          </section>
+
+          <section class="panel panel-review" aria-labelledby="review-title">
+            <div class="panel-heading"><div><p class="eyebrow">Weekly review</p><h2 id="review-title">Keep momentum</h2></div><span id="review-count" class="count-chip">0 open loops</span></div>
+            <div id="review-list" class="review-list"></div>
+          </section>
         </section>
 
-        <section id="intent" class="workbench" aria-labelledby="intent-title">
+        <section id="inbox" class="section-block" aria-labelledby="inbox-title">
           <div class="section-heading">
-            <div><p class="section-number">02 / Intent</p><h2 id="intent-title">Tune the brief</h2></div>
-            <button id="edit-intent" class="text-button" type="button">Edit WallSpec ↗</button>
+            <div><p class="eyebrow">Your library</p><h2 id="inbox-title">The things you kept</h2></div>
+            <div class="filter-group" role="group" aria-label="Filter reading items">
+              <button class="filter is-active" data-status="all" type="button">All</button>
+              <button class="filter" data-status="inbox" type="button">Inbox</button>
+              <button class="filter" data-status="kept" type="button">Kept</button>
+              <button class="filter" data-status="archived" type="button">Archive</button>
+            </div>
           </div>
-          <div id="topic-list" class="topic-list" aria-label="Weighted topics"></div>
+          <div id="entry-list" class="entry-list" aria-live="polite"></div>
         </section>
 
-        <section id="signals" class="sources" aria-labelledby="sources-title">
+        <section id="studio" class="section-block studio" aria-labelledby="studio-title">
           <div class="section-heading">
-            <div><p class="section-number">03 / Signals</p><h2 id="sources-title">Evidence channels</h2></div>
+            <div><p class="eyebrow">Writing studio</p><h2 id="studio-title">Turn a margin into a point of view</h2></div>
+            <button id="new-draft" class="button button-secondary" type="button">New draft</button>
           </div>
-          <div id="source-list" class="source-list"></div>
+          <div id="draft-list" class="draft-list" aria-live="polite"></div>
         </section>
       </main>
+
+      <footer class="footer"><p>Private by default. Your published posts contain only the words and sources you choose.</p><a href="#today">Back to today</a></footer>
     </div>
 
-    <dialog id="spec-dialog" aria-labelledby="dialog-title">
-      <form method="dialog" class="dialog-shell">
-        <header>
-          <div><p class="eyebrow">Local configuration</p><h2 id="dialog-title">Edit WallSpec</h2></div>
-          <button class="icon-button" value="cancel" aria-label="Close editor">×</button>
-        </header>
-        <p>Your YAML remains on this machine. Invalid changes are never written.</p>
-        <textarea id="spec-editor" aria-label="WallSpec YAML" spellcheck="false"></textarea>
-        <div id="editor-error" class="editor-error" role="alert"></div>
-        <footer>
-          <button class="text-button" value="cancel">Cancel</button>
-          <button id="save-spec" class="run-button" value="none" type="button">Save intent</button>
-        </footer>
+    <dialog id="capture-dialog" aria-labelledby="capture-title">
+      <form id="capture-form" class="dialog-shell">
+        <div class="dialog-topline"><p class="eyebrow">Reading inbox</p><button class="icon-button" type="button" data-close-dialog="capture-dialog" aria-label="Close save form">×</button></div>
+        <h2 id="capture-title">Save something<br /><em>worth returning to.</em></h2>
+        <div class="form-grid">
+          <label class="field field-wide"><span>Title</span><input id="capture-title-input" name="title" required maxlength="500" placeholder="What caught your attention?" /></label>
+          <label class="field"><span>Link <small>optional</small></span><input id="capture-url" name="url" type="url" maxlength="4096" placeholder="https://" /></label>
+          <label class="field"><span>Source</span><input id="capture-source" name="source" maxlength="200" value="Saved link" /></label>
+          <label class="field field-wide"><span>Tags <small>comma-separated</small></span><input id="capture-tags" name="tags" maxlength="500" placeholder="agents, research, to write" /></label>
+          <label class="field field-wide"><span>Why keep it?</span><textarea id="capture-summary" name="summary" maxlength="20000" placeholder="A few words for future you."></textarea></label>
+        </div>
+        <div class="dialog-actions"><button class="text-link" type="button" data-close-dialog="capture-dialog">Cancel</button><button class="button button-primary" type="submit">Save to inbox</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="entry-dialog" aria-labelledby="entry-dialog-title">
+      <div class="dialog-shell detail-shell">
+        <div class="dialog-topline"><p class="eyebrow">Reading note</p><button class="icon-button" type="button" data-close-dialog="entry-dialog" aria-label="Close reading note">×</button></div>
+        <div id="entry-detail"></div>
+      </div>
+    </dialog>
+
+    <dialog id="draft-dialog" aria-labelledby="draft-dialog-title">
+      <form id="draft-form" class="dialog-shell draft-shell">
+        <div class="dialog-topline"><p class="eyebrow">Writing studio</p><button class="icon-button" type="button" data-close-dialog="draft-dialog" aria-label="Close draft editor">×</button></div>
+        <input id="draft-id" type="hidden" />
+        <label class="draft-title-field"><span class="sr-only">Draft title</span><input id="draft-title" required maxlength="500" placeholder="Give this thought a title" /></label>
+        <label class="field"><span>Your draft</span><textarea id="draft-body" maxlength="100000" placeholder="Start from what you noticed. Sources stay connected below."></textarea></label>
+        <fieldset class="source-picker"><legend>Source cards</legend><div id="draft-sources"></div></fieldset>
+        <div class="dialog-actions"><button id="publish-draft" class="text-link" type="button" hidden>Publish now ↗</button><button class="button button-primary" type="submit">Save draft</button></div>
       </form>
     </dialog>
 

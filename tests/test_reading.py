@@ -27,6 +27,15 @@ def client_for(tmp_path: Path) -> TestClient:
     return TestClient(create_app(spec_path, state_path=tmp_path / ".wall" / "state.db"))
 
 
+def test_reading_home_is_served_as_the_primary_workspace(tmp_path: Path) -> None:
+    page = client_for(tmp_path).get("/")
+
+    assert page.status_code == 200
+    assert "Your reading," in page.text
+    assert "made useful." in page.text
+    assert "New draft" in page.text
+
+
 def test_reading_entry_can_gather_notes_tasks_and_a_draft(tmp_path: Path) -> None:
     client = client_for(tmp_path)
 

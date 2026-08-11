@@ -64,7 +64,7 @@ def test_dashboard_and_spec_api_load(tmp_path: Path) -> None:
     page = client.get("/")
     config = client.get("/api/spec")
     assert page.status_code == 200
-    assert "Your daily intent, made visible" in page.text
+    assert "Your reading," in page.text
     assert config.json()["name"] == "frontier-test"
     assert client.get("/api/edition").json() is None
     assert page.headers["x-frame-options"] == "DENY"
