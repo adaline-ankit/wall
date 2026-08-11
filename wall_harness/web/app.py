@@ -22,6 +22,7 @@ from starlette.middleware.base import RequestResponseEndpoint
 
 from wall_harness.models import Item, WallEdition, WallSpec
 from wall_harness.pipeline import WallPipeline
+from wall_harness.providers.library import assistant_from_spec, local_library_answer
 from wall_harness.spec import parse_spec
 from wall_harness.state import KnowledgeState
 
@@ -31,6 +32,7 @@ from .reading import (
     EmailCapture,
     EntryUpdate,
     HighlightCreate,
+    LibraryQuestion,
     NoteCreate,
     ReadingEntryCreate,
     ReadingStore,
@@ -108,7 +110,14 @@ def create_app(
 
     @app.middleware("http")
     async def password_protection(request: Request, call_next: RequestResponseEndpoint) -> Response:
-        if request.url.path != "/healthz" and not has_valid_password(request):
+        is_public_asset = request.url.path.startswith("/static/")
+        is_public_post = request.url.path.startswith("/read/")
+        if (
+            request.url.path != "/healthz"
+            and not is_public_asset
+            and not is_public_post
+            and not has_valid_password(request)
+        ):
             return Response(
                 status_code=401,
                 headers={"WWW-Authenticate": 'Basic realm="Margin"'},
@@ -299,6 +308,35 @@ def create_app(
     def get_weekly_review() -> dict[str, object]:
         with ReadingStore(reading_path) as store:
             return store.weekly_review()
+
+    @app.post("/api/reading/ask")
+    def ask_reading_library(request: LibraryQuestion) -> dict[str, object]:
+        spec = select().spec
+        with ReadingStore(reading_path) as store:
+            sources = store.relevant_material(request.question)
+        try:
+            assistant = assistant_from_spec(spec)
+        except Exception as exc:
+            logger.error("Library assistant configuration unavailable (%s)", type(exc).__name__)
+            raise HTTPException(
+                status_code=502,
+                detail="Library assistant is unavailable. Your saved material remains local.",
+            ) from exc
+        if assistant is None:
+            return {
+                "answer": local_library_answer(request.question, sources),
+                "sources": sources,
+                "mode": "local",
+            }
+        try:
+            answer = assistant.answer(request.question, sources, spec)
+        except Exception as exc:
+            logger.error("Library assistant unavailable (%s)", type(exc).__name__)
+            raise HTTPException(
+                status_code=502,
+                detail="Library assistant is unavailable. Your saved material remains local.",
+            ) from exc
+        return {"answer": answer, "sources": sources, "mode": "ai"}
 
     @app.get("/api/reading/export")
     def export_reading_workspace() -> Response:

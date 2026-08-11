@@ -210,11 +210,37 @@ async function importLatestWall() {
   }
 }
 
+function renderLibraryAnswer(result) {
+  const answer = escapeHTML(result.answer).replace(/\n/g, "<br>");
+  const sourceCards = result.sources.length
+    ? `<div class="library-sources">${result.sources.map((source) => `<button class="library-source" type="button" data-open-entry="${source.id}"><span>${escapeHTML(source.source)}</span>${escapeHTML(source.title)}</button>`).join("")}</div>`
+    : "";
+  $("#library-answer").classList.add("is-populated");
+  $("#library-answer").innerHTML = `<p class="library-answer-meta">${result.mode === "ai" ? "AI answer · cited source set below" : "Local source retrieval · no model used"}</p><p class="library-answer-copy">${answer}</p>${sourceCards}`;
+}
+
+async function askLibrary(event) {
+  event.preventDefault();
+  const button = $("#library-ask-form button");
+  const question = $("#library-question").value;
+  button.disabled = true;
+  button.textContent = "Finding sources…";
+  try {
+    renderLibraryAnswer(await request("/api/reading/ask", { method: "POST", body: JSON.stringify({ question }) }));
+  } catch (error) {
+    showNotice(error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Ask the library";
+  }
+}
+
 $("#capture-button").addEventListener("click", () => openDialog("#capture-dialog"));
 $("#hero-capture").addEventListener("click", () => openDialog("#capture-dialog"));
 $("#capture-form").addEventListener("submit", saveCapture);
 $("#new-draft").addEventListener("click", () => openDraft());
 $("#import-wall").addEventListener("click", importLatestWall);
+$("#library-ask-form").addEventListener("submit", askLibrary);
 $("#draft-form").addEventListener("submit", saveDraft);
 $("#publish-draft").addEventListener("click", publishDraft);
 document.querySelectorAll("[data-close-dialog]").forEach((button) => button.addEventListener("click", () => closeDialog(`#${button.dataset.closeDialog}`)));

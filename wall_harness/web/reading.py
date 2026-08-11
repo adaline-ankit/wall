@@ -106,6 +106,10 @@ class DraftUpdate(BaseModel):
     entry_ids: list[str] | None = Field(default=None, max_length=100)
 
 
+class LibraryQuestion(BaseModel):
+    question: str = Field(min_length=2, max_length=1_000)
+
+
 class ReadingStore:
     """Private, file-backed reading-to-writing workspace data."""
 
@@ -481,6 +485,40 @@ class ReadingStore:
             "unfinished_drafts": self.list_drafts(status="draft"),
             "recent_entries": self.list_entries()[:8],
         }
+
+    def relevant_material(self, question: str, limit: int = 6) -> list[dict[str, object]]:
+        """Return the saved material most likely to help answer a private question."""
+        question_terms = {
+            term[:6]
+            for term in re.findall(r"[a-z0-9]+", question.lower())
+            if len(term) >= 3
+        }
+        ranked: list[tuple[int, dict[str, object]]] = []
+        for entry in self.list_entries():
+            detail = self.get_entry(str(entry["id"]))
+            notes = detail["notes"]
+            highlights = detail["highlights"]
+            tags = detail["tags"]
+            assert isinstance(notes, list)
+            assert isinstance(highlights, list)
+            assert isinstance(tags, list)
+            material = " ".join(
+                [
+                    str(detail["title"]),
+                    str(detail["source"]),
+                    str(detail["summary"]),
+                    *[str(tag) for tag in tags],
+                    *[str(note["body"]) for note in notes if isinstance(note, dict)],
+                    *[str(highlight["quote"]) for highlight in highlights if isinstance(highlight, dict)],
+                    *[str(highlight["note"]) for highlight in highlights if isinstance(highlight, dict)],
+                ]
+            ).lower()
+            material_terms = {term[:6] for term in re.findall(r"[a-z0-9]+", material) if len(term) >= 3}
+            score = len(question_terms & material_terms)
+            if score:
+                ranked.append((score, detail))
+        ranked.sort(key=lambda candidate: (candidate[0], str(candidate[1]["updated_at"])), reverse=True)
+        return [entry for _, entry in ranked[:limit]]
 
     def close(self) -> None:
         self.connection.close()

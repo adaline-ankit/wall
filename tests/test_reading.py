@@ -1,3 +1,4 @@
+from base64 import b64encode
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -34,6 +35,7 @@ def test_reading_home_is_served_as_the_primary_workspace(tmp_path: Path) -> None
     assert "Your reading," in page.text
     assert "made useful." in page.text
     assert "New draft" in page.text
+    assert "Ask your library" in page.text
 
 
 def test_reading_entry_can_gather_notes_tasks_and_a_draft(tmp_path: Path) -> None:
@@ -201,3 +203,82 @@ def test_browser_and_forwarded_email_captures_land_in_the_same_inbox(tmp_path: P
         "email",
         "browser",
     ]
+
+
+def test_local_library_assistant_returns_source_bound_material(tmp_path: Path) -> None:
+    client = client_for(tmp_path)
+    entry = client.post(
+        "/api/reading/entries",
+        json={
+            "title": "A serious way to evaluate coding agents",
+            "url": "https://example.com/agent-evals",
+            "source": "Agent Research",
+            "summary": "Evaluation needs deterministic verifiers and repeated trials.",
+            "tags": ["agents", "evals"],
+            "origin": "manual",
+        },
+    ).json()
+    client.post(
+        f"/api/reading/entries/{entry['id']}/notes",
+        json={"body": "Use this when we compare routing strategies."},
+    )
+
+    answer = client.post(
+        "/api/reading/ask",
+        json={"question": "What have I kept about evaluating agents?"},
+    )
+
+    assert answer.status_code == 200
+    assert answer.json()["mode"] == "local"
+    assert answer.json()["sources"][0]["id"] == entry["id"]
+    assert "deterministic verifiers" in answer.json()["answer"]
+    assert "routing strategies" in answer.json()["answer"]
+
+
+def test_library_assistant_configuration_failures_do_not_leak_details(
+    tmp_path: Path, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    spec_path = tmp_path / "wall.yaml"
+    write_spec(spec_path)
+    spec_path.write_text(spec_path.read_text() + "\nllm:\n  provider: openai\n")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    client = TestClient(create_app(spec_path, state_path=tmp_path / ".wall" / "state.db"))
+
+    answer = client.post("/api/reading/ask", json={"question": "What did I save?"})
+
+    assert answer.status_code == 502
+    assert answer.json()["detail"] == "Library assistant is unavailable. Your saved material remains local."
+
+
+def test_published_posts_are_public_while_the_workspace_stays_private(
+    tmp_path: Path, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    spec_path = tmp_path / "wall.yaml"
+    write_spec(spec_path)
+    monkeypatch.setenv("WALL_APP_PASSWORD", "private-service-password")
+    client = TestClient(create_app(spec_path, state_path=tmp_path / ".wall" / "state.db"))
+    headers = {
+        "Authorization": f"Basic {b64encode(b'margin:private-service-password').decode()}"
+    }
+    entry = client.post(
+        "/api/reading/entries",
+        headers=headers,
+        json={
+            "title": "A source worth sharing",
+            "url": "https://example.com/source",
+            "source": "Research",
+            "origin": "manual",
+        },
+    ).json()
+    draft = client.post(
+        "/api/reading/drafts",
+        headers=headers,
+        json={"title": "A public thought", "body": "Only this is public.", "entry_ids": [entry["id"]]},
+    ).json()
+    published = client.post(f"/api/reading/drafts/{draft['id']}/publish", headers=headers).json()
+
+    assert client.get("/api/reading/entries").status_code == 401
+    public_page = client.get(f"/read/{published['slug']}")
+    assert public_page.status_code == 200
+    assert "Only this is public." in public_page.text
+    assert client.get("/static/app.css").status_code == 200

@@ -30,6 +30,12 @@ WallSpec ──► source plugins ──► Item[] ──► lexical/semantic cl
   never turns a successfully built local edition into an invisible failure.
 - `web.app` exposes the same application contracts through a localhost-only FastAPI service. The
   dashboard never reimplements ranking or writes an invalid spec.
+- `ReadingStore` is a separate local SQLite adapter for Margin's saved material, notes, highlights,
+  contextual tasks, drafts, and source links. Its public-post renderer receives drafts and source
+  cards only; it never receives reading notes.
+- `LibraryAssistant.answer(question, selected_sources, WallSpec) -> str` is a second optional LLM
+  boundary for Margin. Local retrieval selects matching material first, then a configured provider
+  may answer from that finite source set with required source-number citations.
 - `WallWorkspace` resolves either one YAML file or a directory of uniquely named WallSpecs. It
   rescans on each request so new local walls appear without restarting the process.
 - `sync` exports a consistent SQLite backup and specs into a versioned, path-validated archive,
@@ -68,5 +74,7 @@ failure in the edition.
 Feed contents are untrusted input. The deterministic pipeline treats them as data. When an analyzer
 is enabled, only the selected item's title and excerpt are sent; source text cannot change tools or
 configuration. When embeddings are enabled, discovered titles and bounded excerpts go to that
-provider before ranking. Wall never uploads the SQLite knowledge database. Use `none` or local
-`ollama` providers for fully local operation.
+provider before ranking. Margin uses the same untrusted-data boundary for its library assistant:
+only a query's locally selected source records, notes, and highlights are sent, never the whole
+SQLite library. Wall never uploads the SQLite knowledge database. Use `none` or local `ollama`
+providers for fully local operation.

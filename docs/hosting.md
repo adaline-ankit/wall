@@ -17,7 +17,10 @@ Open `http://127.0.0.1:8765`. The browser will ask for a username and the passwo
 
 Place an authenticated TLS reverse proxy in front of Margin, then change the port mapping to your proxy network. Do not expose port `8765` directly to the internet. Keep `WALL_APP_PASSWORD` enabled even behind the proxy; it is a second, deliberately simple access boundary for a single-user service.
 
-The public post route is `/read/<slug>`. It is intentionally protected too. Publish it through a separate static-site export or a proxy rule only if you decide a post is meant to be public.
+The public post route is `/read/<slug>`. Published drafts are deliberately readable without the
+Margin password so you can share a post from your own domain. Everything else—the reading inbox,
+notes, tasks, drafts, exports, and APIs—remains behind the password. Only publish a draft when its
+body and linked source cards are safe to share; raw margin notes are never rendered on this route.
 
 ## Data and backups
 

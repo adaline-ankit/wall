@@ -54,6 +54,20 @@
           </section>
         </section>
 
+        <section class="library-ask" aria-labelledby="library-ask-title">
+          <div>
+            <p class="eyebrow">Source-grounded assistant</p>
+            <h2 id="library-ask-title">Ask your library.</h2>
+            <p>Search what you have kept, then follow the source cards back to the original thinking.</p>
+          </div>
+          <form id="library-ask-form" class="library-ask-form">
+            <label class="sr-only" for="library-question">Ask a question about your saved material</label>
+            <textarea id="library-question" required maxlength="1000" placeholder="What have I been learning about evaluation-driven agents?"></textarea>
+            <div class="library-ask-actions"><p>Local by default. If your Wall uses an LLM, only the matching saved material is sent for a cited answer.</p><button class="button button-primary" type="submit">Ask the library</button></div>
+          </form>
+          <div id="library-answer" class="library-answer" aria-live="polite"></div>
+        </section>
+
         <section id="inbox" class="section-block" aria-labelledby="inbox-title">
           <div class="section-heading">
             <div><p class="eyebrow">Your library</p><h2 id="inbox-title">The things you kept</h2></div>

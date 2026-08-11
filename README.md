@@ -35,6 +35,8 @@ write from connected source cards, and publish only the finished draft.
 - A weekly review that surfaces unfinished tasks and private drafts.
 - Source-linked drafts and a separate public-post route that never includes private working notes.
 - Downloadable Markdown export of the reading library and drafts.
+- **Ask your library**: local source retrieval by default, or concise provider-assisted answers tied
+  to matching source cards when you opt into an LLM.
 - Optional single-password protection for a private hosted service via `WALL_APP_PASSWORD`.
 
 Run locally with `wall serve wall.yaml`, or use the documented [private Docker deployment](docs/hosting.md).
@@ -96,6 +98,12 @@ llm:
 
 For hosted providers, copy `.env.example`, export the relevant key, and choose `openai` or
 `anthropic`. Wall only sends already-selected titles and source excerpts to the provider.
+
+Margin uses this same opt-in setting for **Ask your library**. With `provider: none`, it stays
+entirely local and returns the saved sources, notes, and highlights matching a question. With a
+provider configured, Margin sends only that selected material—not the whole SQLite library—and
+asks for a concise answer with source-number citations. The source cards remain visible either way;
+AI does not publish or overwrite your notes or drafts.
 
 ### Add semantic clustering (optional)
 
