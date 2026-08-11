@@ -97,9 +97,12 @@ def serve(
     if spec_path.is_file():
         load_spec(spec_path)
     if not _is_loopback(host) and not allow_network:
-        raise typer.BadParameter(
-            "Non-loopback binding requires --allow-network because the dashboard has no authentication"
+        typer.echo(
+            "Refusing network bind: pass --allow-network to acknowledge that the dashboard "
+            "has no authentication.",
+            err=True,
         )
+        raise typer.Exit(2)
     typer.echo(f"Wall is ready at http://{host}:{port}")
     uvicorn.run(create_app(spec_path), host=host, port=port, log_level="warning")
 
