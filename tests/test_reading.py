@@ -134,3 +134,34 @@ def test_markdown_export_contains_private_workspace_content(tmp_path: Path) -> N
     assert export.status_code == 200
     assert export.headers["content-type"].startswith("application/zip")
     assert export.content.startswith(b"PK")
+
+
+def test_browser_and_forwarded_email_captures_land_in_the_same_inbox(tmp_path: Path) -> None:
+    client = client_for(tmp_path)
+
+    browser = client.post(
+        "/api/reading/captures/browser",
+        json={
+            "title": "A browser-saved article",
+            "url": "https://example.com/browser-save",
+            "source": "Browser",
+        },
+    )
+    email = client.post(
+        "/api/reading/captures/email",
+        json={
+            "subject": "A paper to return to",
+            "sender": "research@example.com",
+            "body": "Worth reading: https://example.com/forwarded-paper",
+        },
+    )
+
+    assert browser.status_code == 201
+    assert browser.json()["origin"] == "browser"
+    assert email.status_code == 201
+    assert email.json()["origin"] == "email"
+    assert email.json()["url"] == "https://example.com/forwarded-paper"
+    assert [entry["origin"] for entry in client.get("/api/reading/entries").json()] == [
+        "email",
+        "browser",
+    ]

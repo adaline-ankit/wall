@@ -54,6 +54,28 @@ class EntryUpdate(BaseModel):
     tags: list[str] | None = Field(default=None, max_length=24)
 
 
+class EmailCapture(BaseModel):
+    subject: str = Field(min_length=1, max_length=500)
+    sender: str = Field(min_length=1, max_length=320)
+    body: str = Field(default="", max_length=50_000)
+    url: str | None = Field(default=None, max_length=4096)
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, value: str | None) -> str | None:
+        return ReadingEntryCreate.validate_url(value)
+
+    def as_entry(self) -> ReadingEntryCreate:
+        match = re.search(r"https?://[^\s<>\]\[\"']+", self.body)
+        return ReadingEntryCreate(
+            title=self.subject,
+            url=self.url or (match.group(0).rstrip(".,;:!?") if match else None),
+            source=f"Forwarded from {self.sender}",
+            summary=self.body,
+            origin="email",
+        )
+
+
 class NoteCreate(BaseModel):
     body: str = Field(min_length=1, max_length=50_000)
 
@@ -194,6 +216,15 @@ class ReadingStore:
         )
         self.connection.commit()
         return self.get_entry(identifier)
+
+    def create_entry_if_new(self, request: ReadingEntryCreate) -> dict[str, object] | None:
+        if request.url:
+            existing = self.connection.execute(
+                "SELECT id FROM reading_entries WHERE url = ?", (request.url,)
+            ).fetchone()
+            if existing is not None:
+                return None
+        return self.create_entry(request)
 
     def list_entries(self, status: str | None = None) -> list[dict[str, object]]:
         query = "SELECT * FROM reading_entries"

@@ -200,10 +200,21 @@ async function setEntryStatus(status) {
   }
 }
 
+async function importLatestWall() {
+  try {
+    const result = await request("/api/reading/import/wall", { method: "POST" });
+    await loadWorkspace();
+    showNotice(result.imported_count ? `Added ${result.imported_count} selected Wall item${result.imported_count === 1 ? "" : "s"} to your inbox.` : "That Wall edition is already in your inbox.");
+  } catch (error) {
+    showNotice(error.message, true);
+  }
+}
+
 $("#capture-button").addEventListener("click", () => openDialog("#capture-dialog"));
 $("#hero-capture").addEventListener("click", () => openDialog("#capture-dialog"));
 $("#capture-form").addEventListener("submit", saveCapture);
 $("#new-draft").addEventListener("click", () => openDraft());
+$("#import-wall").addEventListener("click", importLatestWall);
 $("#draft-form").addEventListener("submit", saveDraft);
 $("#publish-draft").addEventListener("click", publishDraft);
 document.querySelectorAll("[data-close-dialog]").forEach((button) => button.addEventListener("click", () => closeDialog(`#${button.dataset.closeDialog}`)));

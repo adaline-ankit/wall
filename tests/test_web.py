@@ -1,3 +1,4 @@
+from base64 import b64encode
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -162,3 +163,38 @@ def test_directory_workspace_lists_and_switches_walls(tmp_path: Path) -> None:
     assert [wall["name"] for wall in walls.json()] == ["frontier-test", "systems-test"]
     assert selected.json()["name"] == "systems-test"
     assert missing.status_code == 404
+
+
+def test_configured_app_password_protects_network_service(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    spec_path = tmp_path / "wall.yaml"
+    write_spec(spec_path)
+    monkeypatch.setenv("WALL_APP_PASSWORD", "private-service-password")
+    client = TestClient(create_app(spec_path, state_path=tmp_path / ".wall" / "state.db"))
+
+    rejected = client.get("/")
+    accepted = client.get(
+        "/",
+        headers={
+            "Authorization": f"Basic {b64encode(b'margin:private-service-password').decode()}"
+        },
+    )
+
+    assert rejected.status_code == 401
+    assert rejected.headers["www-authenticate"] == 'Basic realm="Margin"'
+    assert accepted.status_code == 200
+
+
+def test_wall_edition_can_be_added_to_the_reading_inbox_without_duplicates(tmp_path: Path) -> None:
+    client, _ = make_client(tmp_path)
+    client.post("/api/run", json={"use_llm": False})
+
+    first = client.post("/api/reading/import/wall")
+    second = client.post("/api/reading/import/wall")
+
+    assert first.status_code == 201
+    assert first.json()["imported_count"] == 1
+    assert second.status_code == 201
+    assert second.json()["imported_count"] == 0
+    entries = client.get("/api/reading/entries").json()
+    assert len(entries) == 1
+    assert entries[0]["origin"] == "wall"

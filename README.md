@@ -6,7 +6,7 @@
 
 **A local-first, programmable information harness that continuously turns the web into your personal learning surface.**
 
-[Quickstart](#quickstart) · [WallSpec](#the-wallspec) · [Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md)
+[Quickstart](#quickstart) · [Margin workspace](#margin-a-private-reading-to-writing-home) · [WallSpec](#the-wallspec) · [Architecture](docs/architecture.md) · [Hosting](docs/hosting.md) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -24,6 +24,23 @@ pluggable discovery → deduplication → intent ranking → optional LLM analys
 personal daily diff                    local knowledge state
 ```
 
+## Margin: a private reading-to-writing home
+
+`wall serve` now opens **Margin**, the personal workspace built on Wall's local-first storage.
+It is deliberately not another feed reader: save what matters, add a margin note or contextual task,
+write from connected source cards, and publish only the finished draft.
+
+- One private inbox for manual saves, browser-save webhooks, forwarded-email webhooks, and Wall/RSS discoveries.
+- Notes, highlights, tasks, and drafts connected to the reading item that created them.
+- A weekly review that surfaces unfinished tasks and private drafts.
+- Source-linked drafts and a separate public-post route that never includes private working notes.
+- Downloadable Markdown export of the reading library and drafts.
+- Optional single-password protection for a private hosted service via `WALL_APP_PASSWORD`.
+
+Run locally with `wall serve wall.yaml`, or use the documented [private Docker deployment](docs/hosting.md).
+The browser and email capture routes are intentionally narrow HTTP contracts; connect your preferred
+browser extension or inbound email provider behind an authenticated proxy.
+
 ## What works today
 
 - A versioned YAML **WallSpec** for goals, weighted topics, exclusions, sources, learning depth,
@@ -39,9 +56,9 @@ personal daily diff                    local knowledge state
 - Authenticated encrypted export/import for moving specs and knowledge state between machines.
 - Source, analyzer, and embedder protocols designed for extension rather than a hard-coded crawler.
 
-Wall is an early local-first product, not a hosted service. It does not recursively crawl entire
-sites, infer preferences without explicit reader feedback, or provide shared multi-user accounts.
-Those are deliberate boundaries, not hidden claims.
+Wall is local-first and single-user by default. It does not recursively crawl entire sites, infer
+preferences without explicit reader feedback, or provide shared multi-user accounts. Those are
+deliberate boundaries, not hidden claims.
 
 ## Quickstart
 
@@ -165,8 +182,9 @@ It can build editions, edit and validate each WallSpec, filter the daily signal,
 database and changes future ranking.
 
 The dashboard has no user accounts because it is a local tool. Binding it to a network interface
-therefore requires an explicit `--allow-network` acknowledgement; put an authenticated reverse
-proxy in front of it before sharing it.
+therefore requires an explicit `--allow-network` acknowledgement. Set `WALL_APP_PASSWORD` for the
+built-in private access boundary and put a TLS reverse proxy in front of it before sharing it. See
+[hosting.md](docs/hosting.md) for the supported Docker deployment.
 
 ### Delivery targets
 

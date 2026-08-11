@@ -3,8 +3,10 @@ from __future__ import annotations
 import json
 import logging
 import os
+import secrets
 import tempfile
 import zipfile
+from base64 import b64decode
 from collections.abc import Callable
 from hashlib import sha256
 from io import BytesIO
@@ -25,6 +27,7 @@ from wall_harness.state import KnowledgeState
 from .reading import (
     DraftCreate,
     DraftUpdate,
+    EmailCapture,
     EntryUpdate,
     HighlightCreate,
     NoteCreate,
@@ -86,6 +89,30 @@ def create_app(
 
     app = FastAPI(title="Wall", docs_url="/api/docs", redoc_url=None)
     app.mount("/static", StaticFiles(directory=static_path), name="static")
+    app_password = os.getenv("WALL_APP_PASSWORD")
+
+    def has_valid_password(request: Request) -> bool:
+        if not app_password:
+            return True
+        authorization = request.headers.get("Authorization", "")
+        scheme, _, encoded = authorization.partition(" ")
+        if scheme.lower() != "basic" or not encoded:
+            return False
+        try:
+            decoded = b64decode(encoded, validate=True).decode("utf-8")
+        except (UnicodeDecodeError, ValueError):
+            return False
+        username, separator, password = decoded.partition(":")
+        return bool(separator and username) and secrets.compare_digest(password, app_password)
+
+    @app.middleware("http")
+    async def password_protection(request: Request, call_next: RequestResponseEndpoint) -> Response:
+        if request.url.path != "/healthz" and not has_valid_password(request):
+            return Response(
+                status_code=401,
+                headers={"WWW-Authenticate": 'Basic realm="Margin"'},
+            )
+        return await call_next(request)
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next: RequestResponseEndpoint) -> Response:
@@ -126,6 +153,10 @@ def create_app(
     def favicon() -> Response:
         return Response(status_code=204)
 
+    @app.get("/healthz")
+    def health() -> dict[str, str]:
+        return {"status": "ok"}
+
     @app.get("/api/reading/entries")
     def list_reading_entries(status: str | None = None) -> list[dict[str, object]]:
         with ReadingStore(reading_path) as store:
@@ -135,6 +166,43 @@ def create_app(
     def create_reading_entry(request: ReadingEntryCreate) -> dict[str, object]:
         with ReadingStore(reading_path) as store:
             return store.create_entry(request)
+
+    @app.post("/api/reading/captures/browser", status_code=201)
+    def capture_from_browser(request: ReadingEntryCreate) -> dict[str, object]:
+        with ReadingStore(reading_path) as store:
+            return store.create_entry(request.model_copy(update={"origin": "browser"}))
+
+    @app.post("/api/reading/captures/email", status_code=201)
+    def capture_forwarded_email(request: EmailCapture) -> dict[str, object]:
+        with ReadingStore(reading_path) as store:
+            return store.create_entry(request.as_entry())
+
+    @app.post("/api/reading/import/wall", status_code=201)
+    def import_latest_wall(wall: str | None = None) -> dict[str, int]:
+        record = select(wall)
+        edition_path = latest_path(record.spec.name)
+        if not edition_path.exists():
+            raise HTTPException(status_code=404, detail="Build a Wall edition before importing it")
+        try:
+            edition = WallEdition.model_validate_json(edition_path.read_text(encoding="utf-8"))
+        except (OSError, ValidationError) as exc:
+            raise HTTPException(status_code=500, detail="Latest edition is unreadable") from exc
+        imported_count = 0
+        with ReadingStore(reading_path) as store:
+            for ranked in edition.items:
+                item = ranked.item
+                entry = store.create_entry_if_new(
+                    ReadingEntryCreate(
+                        title=item.title,
+                        url=item.url,
+                        source=item.source,
+                        summary=ranked.analysis or item.summary,
+                        tags=[*item.tags, f"wall:{edition.wall_name}"],
+                        origin="wall",
+                    )
+                )
+                imported_count += int(entry is not None)
+        return {"imported_count": imported_count}
 
     @app.get("/api/reading/entries/{entry_id}")
     def get_reading_entry(entry_id: str) -> dict[str, object]:

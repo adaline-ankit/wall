@@ -1,0 +1,10 @@
+services:
+  margin:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8765:8765"
+    environment:
+      WALL_APP_PASSWORD: ${WALL_APP_PASSWORD:?Set a long private password in .env}
+    volumes:
+      - ./data:/data
