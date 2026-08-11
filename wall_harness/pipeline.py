@@ -9,7 +9,7 @@ from .models import Item, WallEdition, WallSpec
 from .providers import Analyzer, analyzer_from_spec
 from .ranking import rank_items
 from .renderers import render_html, render_markdown
-from .sources import RSSSource, Source
+from .sources import Source, source_registry
 from .state import KnowledgeState
 
 
@@ -24,7 +24,7 @@ class WallPipeline:
     ) -> None:
         self.spec = spec
         self.state_path = state_path
-        self.sources = sources or {"rss": RSSSource(), "atom": RSSSource()}
+        self.sources = sources or source_registry()
         self.analyzer = analyzer or analyzer_from_spec(spec)
         self.source_failures: list[str] = []
 

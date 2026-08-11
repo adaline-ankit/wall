@@ -10,7 +10,7 @@ def test_loads_example_spec() -> None:
     spec = load_spec(Path("examples/frontier-ai.yaml"))
     assert spec.name == "frontier-ai"
     assert spec.learning.depth == "deep-dive"
-    assert len(spec.sources) == 3
+    assert len(spec.sources) == 5
 
 
 def test_rejects_unknown_delivery_format(tmp_path: Path) -> None:

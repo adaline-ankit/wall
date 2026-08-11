@@ -43,8 +43,16 @@ class MySource:
 pipeline = WallPipeline(spec, sources={"my-source": MySource()})
 ```
 
-The next plugin milestone will add entry-point discovery so packages can self-register without
-application code changes.
+External packages can self-register without application changes:
+
+```toml
+[project.entry-points."wall.sources"]
+my-source = "my_package:MySource"
+```
+
+Installed plugins are discovered at pipeline startup. A broken external plugin is skipped without
+breaking the built-in registry; an explicitly referenced missing source still appears as a source
+failure in the edition.
 
 ## Trust and privacy
 

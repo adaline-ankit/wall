@@ -9,6 +9,12 @@ sources:
   - type: rss
     name: arXiv AI
     url: https://export.arxiv.org/rss/cs.AI
+  - type: hackernews
+    name: Hacker News · AI systems
+    url: https://hn.algolia.com/api/v1/search_by_date?query=AI%20model%20architecture&tags=story&hitsPerPage=30
+  - type: github
+    name: GitHub · AI infrastructure
+    url: https://api.github.com/search/repositories?q=topic%3Allm-inference&sort=updated&per_page=20
 ranking: {minimum_score: 0.2, max_items: 12}
 learning: {depth: deep-dive}
 delivery: {formats: [markdown, html], output_dir: .wall/output}

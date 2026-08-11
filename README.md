@@ -28,7 +28,7 @@ personal daily diff                    local knowledge state
 
 - A versioned YAML **WallSpec** for goals, weighted topics, exclusions, sources, learning depth,
   ranking policy, providers, and delivery formats.
-- RSS/Atom discovery, which already covers arXiv, blogs, GitHub release feeds, and most research labs.
+- RSS/Atom, Hacker News, GitHub search, OpenReview, and readable web-page discovery.
 - URL deduplication plus lightweight title clustering for repeated coverage.
 - Transparent ranking using topical match, recency, source weight, and personal novelty.
 - Local SQLite memory so yesterday's story is less valuable today.
@@ -147,10 +147,10 @@ documentary in v0.1; Wall intentionally does not install background jobs on your
 
 ## Extending Wall
 
-Implement the small `Source` protocol and register it in `WallPipeline.sources`, or implement the
-`Analyzer` protocol and pass it to the pipeline. See [architecture.md](docs/architecture.md) for
-boundaries and a plugin example. Contributions for OpenReview, Hacker News, GitHub search,
-semantic clustering, feedback learning, and delivery adapters are especially welcome.
+Implement the small `Source` protocol and expose it through the `wall.sources` Python entry-point
+group, or implement the `Analyzer` protocol and pass it to the pipeline. See
+[architecture.md](docs/architecture.md) for boundaries and a plugin example. Contributions for
+additional primary-source systems, semantic retrieval, and delivery adapters are especially welcome.
 
 ## Development
 

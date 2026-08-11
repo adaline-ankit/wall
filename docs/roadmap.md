@@ -2,7 +2,6 @@
 
 ## Now — solidify the local harness
 
-- Entry-point based source and renderer plugin discovery
 - Per-source retries, caching, rate limits, and health reporting
 - Schema migrations and export/import for knowledge state
 - Better HTML sanitization and feed fixture coverage
