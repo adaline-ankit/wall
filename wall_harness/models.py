@@ -128,3 +128,4 @@ class WallEdition(BaseModel):
     items: list[RankedItem]
     discovered_count: int
     clustered_count: int
+    source_failures: list[str] = Field(default_factory=list)

@@ -62,3 +62,47 @@ def test_seen_item_loses_novelty(tmp_path: Path) -> None:
     assert first.novelty == 1
     assert second.novelty == 0
     assert first.score > second.score
+
+
+def test_hidden_item_is_removed_from_future_editions(tmp_path: Path) -> None:
+    item = Item.create(
+        title="Sparse attention architecture",
+        url="https://example.com/hidden",
+        summary="model architecture",
+        source="test",
+    )
+    with KnowledgeState(tmp_path / "state.db") as state:
+        state.record_feedback("test-wall", item, "hide")
+        assert rank_items([item], spec(), state) == []
+
+
+def test_positive_feedback_boosts_related_items(tmp_path: Path) -> None:
+    previous = Item.create(
+        title="Sparse attention kernels",
+        url="https://example.com/previous",
+        summary="Fast inference",
+        source="test",
+    )
+    related = Item.create(
+        title="Sparse attention serving",
+        url="https://example.com/related",
+        summary="Production inference",
+        source="test",
+    )
+    baseline_item = Item.create(
+        title="Model architecture overview",
+        url="https://example.com/baseline",
+        summary="General model architecture",
+        source="test",
+    )
+    with KnowledgeState(tmp_path / "state.db") as state:
+        state.remember("test-wall", [related, baseline_item])
+        before = rank_items([related, baseline_item], spec(), state)
+        before_related = next(result.score for result in before if result.item == related)
+        state.record_feedback("test-wall", previous, "more_like_this")
+        after = rank_items([related, baseline_item], spec(), state)
+        after_related = next(result.score for result in after if result.item == related)
+    assert after_related > before_related
+    assert "matches your feedback" in next(
+        result.reasons for result in after if result.item == related
+    )

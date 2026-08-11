@@ -26,6 +26,7 @@ class WallPipeline:
         self.state_path = state_path
         self.sources = sources or {"rss": RSSSource(), "atom": RSSSource()}
         self.analyzer = analyzer or analyzer_from_spec(spec)
+        self.source_failures: list[str] = []
 
     def discover(self) -> list[Item]:
         items: list[Item] = []
@@ -41,6 +42,7 @@ class WallPipeline:
                 failures.append(f"{source_spec.name or source_spec.url}: {exc}")
         if not items and failures:
             raise RuntimeError("All sources failed: " + "; ".join(failures))
+        self.source_failures = failures
         return items
 
     def run(self, *, use_llm: bool = True) -> WallEdition:
@@ -60,6 +62,7 @@ class WallPipeline:
             items=ranked,
             discovered_count=len(discovered),
             clustered_count=len(clustered),
+            source_failures=self.source_failures,
         )
 
     def write(self, edition: WallEdition) -> list[Path]:

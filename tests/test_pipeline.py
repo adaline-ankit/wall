@@ -59,3 +59,27 @@ def test_partial_source_failure_does_not_erase_success(tmp_path: Path) -> None:
         analyzer=NoopAnalyzer(),
     )
     assert len(pipeline.discover()) == 1
+
+
+def test_pipeline_reports_source_failures_without_losing_results(tmp_path: Path) -> None:
+    class Broken:
+        def fetch(self, spec: SourceSpec) -> list[Item]:
+            raise RuntimeError("offline")
+
+    spec = WallSpec(
+        name="systems",
+        goal="learn systems",
+        topics=[Topic(name="consensus")],
+        sources=[
+            SourceSpec(type="fake", url="https://example.com/ok"),
+            SourceSpec(type="broken", url="https://example.com/broken"),
+        ],
+    )
+    pipeline = WallPipeline(
+        spec,
+        state_path=tmp_path / "state.db",
+        sources={"fake": FakeSource(), "broken": Broken()},
+        analyzer=NoopAnalyzer(),
+    )
+    edition = pipeline.run()
+    assert edition.source_failures == ["https://example.com/broken: offline"]
