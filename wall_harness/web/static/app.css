@@ -5,7 +5,7 @@
   --ink: #181814;
   --muted: #6f6b60;
   --line: #c8c2b4;
-  --accent: #c84924;
+  --accent: #b74220;
   --positive: #315c48;
   --rail: #1b1b17;
   --rail-ink: #f4f0e6;
@@ -25,6 +25,7 @@ body { margin: 0; background: var(--paper); color: var(--ink); font: 1rem/1.55 G
 button, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 a { color: inherit; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 
 .skip-link { position: fixed; left: var(--space-4); top: -5rem; z-index: 100; background: var(--surface); padding: var(--space-3) var(--space-4); }
@@ -100,7 +101,7 @@ dialog::backdrop { background: rgb(18 18 15 / 70%); }
 .dialog-shell footer .run-button { width: auto; }
 .editor-error { min-height: 1.5rem; color: var(--accent); font: 0.75rem/1.4 ui-monospace, monospace; }
 
-[data-theme="dark"] { color-scheme: dark; --paper: #181814; --surface: #22221d; --ink: #f0ece2; --muted: #aaa497; --line: #49483f; --rail: #0e0e0c; }
+[data-theme="dark"] { color-scheme: dark; --paper: #181814; --surface: #22221d; --ink: #f0ece2; --muted: #aaa497; --line: #49483f; --rail: #0e0e0c; --accent: #e06a43; }
 [data-theme="dark"] .story-copy { color: #d5d0c5; }
 
 @media (max-width: 850px) {

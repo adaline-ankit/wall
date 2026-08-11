@@ -3,11 +3,14 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
+
+import httpx
 
 from .cluster import cluster_items
 from .delivery import deliver_edition
-from .models import Item, WallEdition, WallSpec
-from .providers import Analyzer, analyzer_from_spec
+from .models import Item, SourceSpec, WallEdition, WallSpec
+from .providers import Analyzer, Embedder, analyzer_from_spec, embedder_from_config
 from .ranking import rank_items
 from .renderers import render_html, render_markdown
 from .sources import Source, source_registry
@@ -22,11 +25,13 @@ class WallPipeline:
         state_path: Path = Path(".wall/state.db"),
         sources: dict[str, Source] | None = None,
         analyzer: Analyzer | None = None,
+        embedder: Embedder | None = None,
     ) -> None:
         self.spec = spec
         self.state_path = state_path
-        self.sources = sources or source_registry()
-        self.analyzer = analyzer or analyzer_from_spec(spec)
+        self.sources = sources if sources is not None else source_registry()
+        self.analyzer = analyzer
+        self.embedder = embedder if embedder is not None else embedder_from_config(spec.embeddings)
         self.source_failures: list[str] = []
 
     def discover(self) -> list[Item]:
@@ -40,7 +45,7 @@ class WallPipeline:
             try:
                 items.extend(source.fetch(source_spec))
             except Exception as exc:
-                failures.append(f"{source_spec.name or source_spec.url}: {exc}")
+                failures.append(f"{source_label(source_spec)}: {failure_reason(exc)}")
         if not items and failures:
             raise RuntimeError("All sources failed: " + "; ".join(failures))
         self.source_failures = failures
@@ -48,13 +53,36 @@ class WallPipeline:
 
     def run(self, *, use_llm: bool = True) -> WallEdition:
         discovered = self.discover()
-        clustered = cluster_items(discovered)
+        processing_warnings: list[str] = []
+        try:
+            clustered = cluster_items(
+                discovered,
+                embedder=self.embedder,
+                semantic_threshold=self.spec.embeddings.similarity_threshold,
+            )
+        except Exception as exc:
+            processing_warnings.append(f"semantic clustering unavailable: {failure_reason(exc)}")
+            clustered = cluster_items(discovered)
         with KnowledgeState(self.state_path) as state:
             ranked = rank_items(clustered, self.spec, state)
-            if use_llm:
-                for result in ranked:
-                    analysis = self.analyzer.analyze(result.item, self.spec)
-                    result.analysis = analysis or None
+            if use_llm and ranked:
+                try:
+                    analyzer = (
+                        self.analyzer
+                        if self.analyzer is not None
+                        else analyzer_from_spec(self.spec)
+                    )
+                except Exception as exc:
+                    processing_warnings.append(f"analysis unavailable: {failure_reason(exc)}")
+                else:
+                    for result in ranked:
+                        try:
+                            analysis = analyzer.analyze(result.item, self.spec)
+                            result.analysis = analysis or None
+                        except Exception as exc:
+                            processing_warnings.append(
+                                f"analysis unavailable for {result.item.id}: {failure_reason(exc)}"
+                            )
             state.remember(self.spec.name, [result.item for result in ranked])
         return WallEdition(
             wall_name=self.spec.name,
@@ -64,6 +92,7 @@ class WallPipeline:
             discovered_count=len(discovered),
             clustered_count=len(clustered),
             source_failures=self.source_failures,
+            processing_warnings=processing_warnings,
         )
 
     def write(self, edition: WallEdition) -> list[Path]:
@@ -85,3 +114,24 @@ class WallPipeline:
 
     def deliver(self, edition: WallEdition) -> None:
         edition.delivery_receipts = deliver_edition(edition, self.spec.delivery)
+
+
+def source_label(source_spec: SourceSpec) -> str:
+    if source_spec.name:
+        return source_spec.name
+    parsed = urlsplit(str(source_spec.url))
+    hostname = parsed.hostname or "source"
+    safe_host = f"[{hostname}]" if ":" in hostname else hostname
+    if parsed.port is not None:
+        safe_host = f"{safe_host}:{parsed.port}"
+    return urlunsplit((parsed.scheme, safe_host, parsed.path, "", ""))
+
+
+def failure_reason(error: Exception) -> str:
+    if isinstance(error, httpx.HTTPStatusError):
+        return f"HTTP {error.response.status_code}"
+    if isinstance(error, httpx.TimeoutException):
+        return "timeout"
+    if isinstance(error, httpx.RequestError):
+        return "network error"
+    return type(error).__name__

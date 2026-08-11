@@ -1,3 +1,5 @@
+import io
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -5,7 +7,7 @@ from cryptography.exceptions import InvalidTag
 
 from wall_harness.models import Item
 from wall_harness.state import KnowledgeState
-from wall_harness.sync import export_bundle, import_bundle
+from wall_harness.sync import export_bundle, import_bundle, validate_archive
 
 
 def make_workspace(path: Path) -> Path:
@@ -82,3 +84,36 @@ def test_export_refuses_to_replace_an_existing_bundle(tmp_path: Path) -> None:
     with pytest.raises(FileExistsError):
         export_bundle(workspace, archive, "correct horse battery staple")
     assert archive.read_bytes() == b"keep me"
+
+
+def test_force_import_replaces_only_existing_wall_data(tmp_path: Path) -> None:
+    workspace = tmp_path / "source"
+    make_workspace(workspace)
+    archive = tmp_path / "wall.sync"
+    export_bundle(workspace, archive, "correct horse battery staple")
+    destination = tmp_path / "restored"
+    destination.mkdir()
+    (destination / "old.yaml").write_text("name: old")
+    (destination / "keep.txt").write_text("unrelated")
+
+    import_bundle(
+        archive,
+        destination,
+        "correct horse battery staple",
+        force=True,
+    )
+
+    assert not (destination / "old.yaml").exists()
+    assert (destination / "frontier.yaml").exists()
+    assert (destination / "keep.txt").read_text() == "unrelated"
+
+
+def test_archive_validation_rejects_parent_relative_paths() -> None:
+    payload = io.BytesIO()
+    with zipfile.ZipFile(payload, "w") as archive:
+        archive.writestr("manifest.json", "{}")
+        archive.writestr("../escape.yaml", "name: escape")
+    payload.seek(0)
+
+    with zipfile.ZipFile(payload) as archive, pytest.raises(ValueError, match="Unsafe path"):
+        validate_archive(archive)

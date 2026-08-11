@@ -37,3 +37,38 @@ def test_clusters_different_headlines_about_the_same_concept() -> None:
         "Acme describes mixture of experts inference in its new model release.",
     )
     assert len(cluster_items([first, second], threshold=0.5)) == 1
+
+
+def test_optional_embeddings_cluster_semantically_equivalent_coverage() -> None:
+    class FakeEmbedder:
+        def embed(self, texts: list[str]) -> list[list[float]]:
+            assert len(texts) == 3
+            return [[1.0, 0.0], [0.99, 0.01], [0.0, 1.0]]
+
+    items = [
+        make_item("New cache design", "https://one.test", "Cuts serving memory."),
+        make_item("Serving gets leaner", "https://two.test", "A redesigned state store."),
+        make_item("Compiler release", "https://three.test", "New static analysis."),
+    ]
+
+    clustered = cluster_items(items, embedder=FakeEmbedder(), semantic_threshold=0.95)
+
+    assert clustered == [items[1], items[2]]
+
+
+def test_invalid_embedding_shape_fails_closed() -> None:
+    class BrokenEmbedder:
+        def embed(self, texts: list[str]) -> list[list[float]]:
+            return [[1.0]]
+
+    items = [
+        make_item("One", "https://one.test"),
+        make_item("Two", "https://two.test"),
+    ]
+
+    try:
+        cluster_items(items, embedder=BrokenEmbedder())
+    except ValueError as exc:
+        assert "one vector per item" in str(exc)
+    else:
+        raise AssertionError("expected invalid embeddings to fail")

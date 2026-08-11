@@ -3,13 +3,12 @@
 ## Now — solidify the local harness
 
 - Per-source retries, caching, rate limits, and health reporting
-- Schema migrations and export/import for knowledge state
-- Better HTML sanitization and feed fixture coverage
+- Versioned knowledge-state migrations and repair tooling
+- Richer feed fixtures and parser diagnostics
 
 ## Next — make intent adaptive
 
-- Explicit like/hide/known feedback events
-- Embedding-assisted semantic clustering behind a local-first interface
+- Embedding-assisted concept novelty across prior editions
 - Evidence-backed LLM scoring as an optional second-stage reranker
 
 ## Later — delivery and community

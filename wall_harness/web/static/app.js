@@ -18,7 +18,10 @@ async function request(path, options = {}) {
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.detail || `Request failed (${response.status})`);
+    const detail = Array.isArray(payload.detail)
+      ? payload.detail.map((entry) => entry.msg || String(entry)).join("; ")
+      : payload.detail;
+    throw new Error(detail || `Request failed (${response.status})`);
   }
   if (response.status === 204) return null;
   return response.json();
@@ -105,8 +108,10 @@ async function buildWall() {
   try {
     state.edition = await request("/api/run", { method: "POST", body: JSON.stringify({ use_llm: true, wall: state.activeWall }) });
     renderEdition();
-    const failures = state.edition.source_failures.length;
-    showNotice(`Built ${state.edition.items.length} items from ${state.edition.discovered_count} discoveries${failures ? ` · ${failures} source warning${failures > 1 ? "s" : ""}` : ""}.`);
+    const sourceWarnings = state.edition.source_failures.length;
+    const processingWarnings = state.edition.processing_warnings.length;
+    const warnings = sourceWarnings + processingWarnings;
+    showNotice(`Built ${state.edition.items.length} items from ${state.edition.discovered_count} discoveries${warnings ? ` · ${warnings} warning${warnings > 1 ? "s" : ""}` : ""}.`);
   } catch (error) {
     showNotice(error.message, true);
   } finally {
@@ -130,8 +135,7 @@ async function sendFeedback(button) {
 }
 
 async function openEditor() {
-  const response = await fetch(`/api/spec${wallQuery()}`);
-  const spec = await response.json();
+  const spec = await request(`/api/spec${wallQuery()}`);
   const yaml = await request(`/api/spec/source${wallQuery()}`).catch(() => null);
   $("#spec-editor").value = yaml?.content || JSON.stringify(spec, null, 2);
   $("#editor-error").textContent = "";
@@ -144,6 +148,7 @@ async function saveEditor() {
     state.spec = await request(`/api/spec${wallQuery()}`, { method: "PUT", body: JSON.stringify({ yaml: $("#spec-editor").value }) });
     state.activeWall = state.spec.name;
     state.walls = await request("/api/walls");
+    state.feedback = new Map(Object.entries(await request(`/api/feedback${wallQuery()}`)));
     renderWallPicker();
     renderSpec();
     $("#spec-dialog").close();
@@ -155,8 +160,8 @@ async function saveEditor() {
 
 async function loadWall(name) {
   state.activeWall = name;
-  state.feedback = new Map();
   state.spec = await request(`/api/spec${wallQuery()}`);
+  state.feedback = new Map(Object.entries(await request(`/api/feedback${wallQuery()}`)));
   renderSpec();
   renderWallPicker();
   state.edition = await request(`/api/edition${wallQuery()}`);

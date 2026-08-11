@@ -110,3 +110,32 @@ def test_web_source_extracts_readable_page_metadata(monkeypatch) -> None:  # typ
 
 def test_registry_exposes_all_builtin_sources() -> None:
     assert {"rss", "atom", "web", "hackernews", "github", "openreview"} <= set(source_registry())
+
+
+def test_registry_loads_external_plugins_and_skips_broken_ones(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    class PluginSource:
+        def fetch(self, spec: SourceSpec):  # type: ignore[no-untyped-def]
+            return []
+
+    class EntryPoint:
+        def __init__(self, name, loaded):  # type: ignore[no-untyped-def]
+            self.name = name
+            self.loaded = loaded
+
+        def load(self):  # type: ignore[no-untyped-def]
+            if isinstance(self.loaded, Exception):
+                raise self.loaded
+            return self.loaded
+
+    monkeypatch.setattr(
+        "wall_harness.sources.registry.entry_points",
+        lambda **kwargs: [
+            EntryPoint("custom", PluginSource),
+            EntryPoint("broken", RuntimeError("bad plugin")),
+        ],
+    )
+
+    registry = source_registry()
+
+    assert isinstance(registry["custom"], PluginSource)
+    assert "broken" not in registry

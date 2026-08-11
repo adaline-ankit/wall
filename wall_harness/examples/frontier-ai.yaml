@@ -3,19 +3,52 @@ name: frontier-ai
 goal: Understand meaningful changes in frontier model architecture, training, inference, and agent systems.
 topics:
   - name: frontier language models
-    weight: 2
+    weight: 2.0
     keywords: [foundation model, language model, multimodal model]
+  - name: model architecture
+    weight: 1.8
+    keywords: [mixture of experts, sparse attention, mamba, inference, scaling]
+  - name: agent engineering
+    weight: 1.5
+    keywords: [agents, tool use, evaluation, long horizon]
+exclude:
+  - funding round
+  - prompt collection
+  - beginner tutorial
 sources:
   - type: rss
     name: arXiv AI
     url: https://export.arxiv.org/rss/cs.AI
+    tags: [research]
+  - type: rss
+    name: Hugging Face Blog
+    url: https://huggingface.co/blog/feed.xml
+    tags: [models]
+  - type: rss
+    name: OpenAI Research
+    url: https://openai.com/news/rss.xml
+    tags: [lab]
   - type: hackernews
     name: Hacker News · AI systems
     url: https://hn.algolia.com/api/v1/search_by_date?query=AI%20model%20architecture&tags=story&hitsPerPage=30
+    tags: [discussion]
   - type: github
     name: GitHub · AI infrastructure
     url: https://api.github.com/search/repositories?q=topic%3Allm-inference&sort=updated&per_page=20
-ranking: {minimum_score: 0.2, max_items: 12}
-learning: {depth: deep-dive}
-delivery: {formats: [markdown, html], output_dir: .wall/output}
-llm: {provider: none}
+    tags: [code]
+ranking:
+  minimum_score: 0.28
+  max_items: 12
+  recency_half_life_hours: 72
+  novelty_weight: 0.25
+learning:
+  depth: deep-dive
+  assumed_knowledge: [transformers, attention, basic deep learning]
+  explain_terms: true
+delivery:
+  formats: [markdown, html, json]
+  output_dir: .wall/output
+llm:
+  provider: none
+embeddings:
+  provider: none

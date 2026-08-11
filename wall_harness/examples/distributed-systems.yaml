@@ -2,14 +2,37 @@ version: 1
 name: distributed-systems
 goal: Build practical depth in databases, consensus, reliability, and large-scale systems design.
 topics:
-  - name: distributed systems
-    weight: 2
-    keywords: [database, consensus, replication, reliability]
+  - name: distributed databases
+    weight: 2.0
+    keywords: [database, replication, sharding, transactions, storage engine]
+  - name: consensus and coordination
+    weight: 1.8
+    keywords: [raft, paxos, consensus, clocks, consistency]
+  - name: production reliability
+    weight: 1.4
+    keywords: [incident, resilience, observability, failure, latency]
+exclude: [beginner certification, vendor webinar]
 sources:
   - type: rss
     name: ACM Queue
     url: https://queue.acm.org/rss/feeds/queuecontent.xml
-ranking: {minimum_score: 0.2, max_items: 10}
-learning: {depth: practitioner}
-delivery: {formats: [markdown, html], output_dir: .wall/output}
-llm: {provider: none}
+    tags: [engineering]
+  - type: rss
+    name: AWS Architecture Blog
+    url: https://aws.amazon.com/blogs/architecture/feed/
+    tags: [architecture]
+ranking:
+  minimum_score: 0.25
+  max_items: 10
+  recency_half_life_hours: 120
+  novelty_weight: 0.3
+learning:
+  depth: practitioner
+  assumed_knowledge: [networking, databases]
+delivery:
+  formats: [markdown, html]
+  output_dir: .wall/output
+llm:
+  provider: none
+embeddings:
+  provider: none

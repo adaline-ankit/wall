@@ -20,7 +20,7 @@ sources:
   - type: rss
     name: AWS Architecture Blog
     url: https://aws.amazon.com/blogs/architecture/feed/
-    tags: [production]
+    tags: [architecture]
 ranking:
   minimum_score: 0.25
   max_items: 10
@@ -33,4 +33,6 @@ delivery:
   formats: [markdown, html]
   output_dir: .wall/output
 llm:
+  provider: none
+embeddings:
   provider: none

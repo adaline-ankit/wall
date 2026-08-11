@@ -29,6 +29,8 @@ def rank_item(item: Item, spec: WallSpec, state: KnowledgeState, now: datetime) 
         if overlap:
             matched.append((topic.name, topic.weight * min(1.0, overlap * 2)))
     relevance = sum(score for _, score in matched) / total_weight
+    if relevance == 0:
+        return RankedItem(item=item, score=0.0, novelty=0.0, reasons=["no topical match"])
     age_hours = max(0.0, (now - item.published_at).total_seconds() / 3600)
     recency = math.pow(0.5, age_hours / spec.ranking.recency_half_life_hours)
     novelty = 0.0 if feedback_action == "known" else state.concept_novelty(spec.name, item)
@@ -49,10 +51,16 @@ def rank_item(item: Item, spec: WallSpec, state: KnowledgeState, now: datetime) 
     return RankedItem(item=item, score=min(1.0, round(score, 4)), novelty=novelty, reasons=reasons)
 
 
-def rank_items(items: list[Item], spec: WallSpec, state: KnowledgeState) -> list[RankedItem]:
-    now = datetime.now(UTC)
+def rank_items(
+    items: list[Item],
+    spec: WallSpec,
+    state: KnowledgeState,
+    *,
+    now: datetime | None = None,
+) -> list[RankedItem]:
+    now = now or datetime.now(UTC)
     ranked = [rank_item(item, spec, state, now) for item in items]
     eligible = [item for item in ranked if item.score >= spec.ranking.minimum_score]
-    return sorted(eligible, key=lambda item: (-item.score, item.item.published_at))[
+    return sorted(eligible, key=lambda item: (-item.score, -item.item.published_at.timestamp()))[
         : spec.ranking.max_items
     ]

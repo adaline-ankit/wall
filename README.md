@@ -29,17 +29,19 @@ personal daily diff                    local knowledge state
 - A versioned YAML **WallSpec** for goals, weighted topics, exclusions, sources, learning depth,
   ranking policy, providers, and delivery formats.
 - RSS/Atom, Hacker News, GitHub search, OpenReview, and readable web-page discovery.
-- URL deduplication plus content-aware clustering for differently worded coverage.
+- URL deduplication plus content-aware clustering, with opt-in Ollama/OpenAI embeddings for
+  semantically equivalent coverage.
 - Transparent ranking using topical match, recency, source weight, and personal novelty.
 - Local SQLite concept memory so follow-up coverage is less novel than a genuinely new subject.
 - Optional analysis through OpenAI, Anthropic, or local Ollama; **no LLM or API key is required**.
 - Markdown, JSON, and a polished static HTML wall you can open anywhere.
 - Opt-in webhook and SMTP email delivery with credentials read from environment variables.
 - Authenticated encrypted export/import for moving specs and knowledge state between machines.
-- Source and analyzer protocols designed for plugins rather than a hard-coded crawler.
+- Source, analyzer, and embedder protocols designed for extension rather than a hard-coded crawler.
 
-Wall is an early MVP. It does not yet crawl arbitrary pages, learn implicit preferences, deliver
-email, or provide multi-user sync. Those are deliberate next layers, not hidden claims.
+Wall is an early local-first product, not a hosted service. It does not recursively crawl entire
+sites, infer preferences without explicit reader feedback, or provide shared multi-user accounts.
+Those are deliberate boundaries, not hidden claims.
 
 ## Quickstart
 
@@ -56,8 +58,10 @@ wall init wall.yaml
 wall validate wall.yaml
 wall run wall.yaml
 wall serve wall.yaml
-open .wall/output/index.html
 ```
+
+Open `http://127.0.0.1:8765` in any browser. `wall run` also writes a portable static edition to
+`.wall/output/index.html` by default.
 
 The bundled config uses deterministic local ranking and requires no credentials. Try the second
 example with `wall init wall.yaml --example distributed-systems`.
@@ -75,6 +79,22 @@ llm:
 
 For hosted providers, copy `.env.example`, export the relevant key, and choose `openai` or
 `anthropic`. Wall only sends already-selected titles and source excerpts to the provider.
+
+### Add semantic clustering (optional)
+
+Lexical content clustering is deterministic and enabled by default. To group differently worded
+coverage using local embeddings, add:
+
+```yaml
+embeddings:
+  provider: ollama       # none | ollama | openai
+  model: embeddinggemma
+  similarity_threshold: 0.86
+```
+
+Embedding is a pre-ranking step, so the configured embedding provider receives every discovered
+title and a bounded excerpt. Use `ollama` to keep that data local. The analyzer remains independent
+and still receives only selected items.
 
 ## The WallSpec
 
@@ -117,6 +137,9 @@ delivery:
 
 llm:
   provider: none
+
+embeddings:
+  provider: none
 ```
 
 See the complete [frontier AI](examples/frontier-ai.yaml) and
@@ -141,6 +164,10 @@ It can build editions, edit and validate each WallSpec, filter the daily signal,
 `hide`, `already know`, or `more like this` feedback. Feedback stays in the local SQLite knowledge
 database and changes future ranking.
 
+The dashboard has no user accounts because it is a local tool. Binding it to a network interface
+therefore requires an explicit `--allow-network` acknowledgement; put an authenticated reverse
+proxy in front of it before sharing it.
+
 ### Delivery targets
 
 ```yaml
@@ -161,6 +188,9 @@ delivery:
 Delivery is disabled by default. Failures are recorded as receipts without discarding the locally
 built edition. WallSpec contains environment-variable names, never SMTP credentials.
 
+Optional analyzer or embedding outages are also recorded as processing warnings. Wall falls back
+to the deterministic local edition instead of throwing away discovered and ranked results.
+
 ### Encrypted sync bundles
 
 `wall sync export` bundles the workspace WallSpecs and a consistent SQLite knowledge snapshot. It
@@ -172,7 +202,7 @@ This is portable, provider-neutral sync: place the encrypted `.wall-sync` file i
 trust. The passphrase and plaintext never leave the local command.
 
 Run Wall from cron, launchd, systemd, or GitHub Actions. The `delivery.schedule` field is
-documentary in v0.1; Wall intentionally does not install background jobs on your machine.
+documentary in v0.2; Wall intentionally does not install background jobs on your machine.
 
 ## Philosophy
 
@@ -186,7 +216,7 @@ documentary in v0.1; Wall intentionally does not install background jobs on your
 ## Extending Wall
 
 Implement the small `Source` protocol and expose it through the `wall.sources` Python entry-point
-group, or implement the `Analyzer` protocol and pass it to the pipeline. See
+group, or implement the `Analyzer`/`Embedder` protocols and pass them to the pipeline. See
 [architecture.md](docs/architecture.md) for boundaries and a plugin example. Contributions for
 additional primary-source systems, semantic retrieval, and delivery adapters are especially welcome.
 

@@ -91,6 +91,17 @@ def test_feedback_changes_future_editions(tmp_path: Path) -> None:
     assert rerun.json()["items"] == []
 
 
+def test_feedback_api_restores_persisted_dashboard_state(tmp_path: Path) -> None:
+    client, _ = make_client(tmp_path)
+    item = client.post("/api/run", json={"use_llm": False}).json()["items"][0]["item"]
+    client.post("/api/feedback", json={"item": item, "action": "save"})
+
+    response = client.get("/api/feedback")
+
+    assert response.status_code == 200
+    assert response.json() == {item["id"]: "save"}
+
+
 def test_spec_editor_validates_before_overwriting(tmp_path: Path) -> None:
     client, spec_path = make_client(tmp_path)
     original = spec_path.read_text()
@@ -103,6 +114,36 @@ def test_spec_editor_validates_before_overwriting(tmp_path: Path) -> None:
     assert response.status_code == 200
     assert response.json()["name"] == "edited-wall"
     assert "edited-wall" in spec_path.read_text()
+
+
+def test_spec_editor_rejects_duplicate_wall_names(tmp_path: Path) -> None:
+    first = tmp_path / "ai.yaml"
+    second = tmp_path / "systems.yaml"
+    write_spec(first)
+    second.write_text(first.read_text().replace("frontier-test", "systems-test"))
+    client = TestClient(create_app(tmp_path, state_path=tmp_path / ".wall" / "state.db"))
+
+    duplicate = second.read_text().replace("systems-test", "frontier-test")
+    response = client.put("/api/spec", params={"wall": "systems-test"}, json={"yaml": duplicate})
+
+    assert response.status_code == 422
+    assert "unique" in response.json()["detail"]
+    assert "systems-test" in second.read_text()
+
+
+def test_run_error_does_not_expose_internal_details(tmp_path: Path) -> None:
+    spec_path = tmp_path / "wall.yaml"
+    write_spec(spec_path)
+
+    class BrokenPipeline:
+        def run(self, *, use_llm: bool):
+            raise RuntimeError("secret-token-in-upstream-url")
+
+    client = TestClient(create_app(spec_path, pipeline_factory=lambda spec: BrokenPipeline()))
+    response = client.post("/api/run", json={"use_llm": False})
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "Wall build failed. Check the server logs for details."
 
 
 def test_directory_workspace_lists_and_switches_walls(tmp_path: Path) -> None:

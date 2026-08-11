@@ -50,3 +50,5 @@ delivery:
   output_dir: .wall/output
 llm:
   provider: none
+embeddings:
+  provider: none

@@ -102,6 +102,17 @@ class KnowledgeState:
         ).fetchone()
         return str(row[0]) if row else None
 
+    def feedback_actions(self, wall_name: str, item_ids: list[str]) -> dict[str, str]:
+        if not item_ids:
+            return {}
+        placeholders = ", ".join("?" for _ in item_ids)
+        rows = self.connection.execute(
+            f"SELECT item_id, action FROM feedback WHERE wall_name = ? "
+            f"AND item_id IN ({placeholders})",
+            (wall_name, *item_ids),
+        ).fetchall()
+        return {str(item_id): str(action) for item_id, action in rows}
+
     def positive_terms(self, wall_name: str) -> set[str]:
         rows = self.connection.execute(
             """SELECT title, summary FROM feedback

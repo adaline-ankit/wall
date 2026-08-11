@@ -25,6 +25,19 @@ def test_serve_starts_local_dashboard(monkeypatch, tmp_path: Path) -> None:  # t
     assert captured["application"].title == "Wall"
 
 
+def test_serve_requires_explicit_opt_in_for_network_binding(tmp_path: Path) -> None:
+    spec = tmp_path / "wall.yaml"
+    spec.write_text(
+        "name: test\ngoal: test\ntopics: [{name: test}]\n"
+        "sources: [{url: https://example.com/feed}]\n"
+    )
+
+    result = CliRunner().invoke(app, ["serve", str(spec), "--host", "0.0.0.0"])
+
+    assert result.exit_code != 0
+    assert "--allow-network" in result.output
+
+
 def test_sync_commands_round_trip_a_workspace(tmp_path: Path) -> None:
     workspace = tmp_path / "walls"
     workspace.mkdir()

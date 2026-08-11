@@ -19,6 +19,7 @@ MAGIC = b"WALLSYNC1"
 SALT_SIZE = 16
 NONCE_SIZE = 12
 MAX_BUNDLE_SIZE = 100 * 1024 * 1024
+GCM_TAG_SIZE = 16
 
 
 def derive_key(passphrase: str, salt: bytes) -> bytes:
@@ -71,7 +72,7 @@ def import_bundle(
     header_size = len(MAGIC) + SALT_SIZE + NONCE_SIZE
     if len(encrypted) < header_size or not encrypted.startswith(MAGIC):
         raise ValueError("Not a Wall encrypted sync bundle")
-    if len(encrypted) > MAX_BUNDLE_SIZE:
+    if len(encrypted) > MAX_BUNDLE_SIZE + header_size + GCM_TAG_SIZE:
         raise ValueError("Encrypted sync bundle exceeds the 100 MB safety limit")
     salt_start = len(MAGIC)
     nonce_start = salt_start + SALT_SIZE
@@ -85,22 +86,45 @@ def import_bundle(
     with zipfile.ZipFile(io.BytesIO(plaintext)) as archive:
         validate_archive(archive)
         manifest = json.loads(archive.read("manifest.json"))
+        if not isinstance(manifest, dict):
+            raise ValueError("Unsupported sync bundle manifest")
         if manifest.get("version") != 1 or not isinstance(manifest.get("specs"), list):
             raise ValueError("Unsupported sync bundle manifest")
+        manifest_specs = manifest["specs"]
+        if not all(isinstance(name, str) for name in manifest_specs):
+            raise ValueError("Invalid WallSpec filename in bundle")
+        if len(manifest_specs) != len(set(manifest_specs)):
+            raise ValueError("Sync bundle manifest contains duplicate WallSpecs")
         specs: dict[str, bytes] = {}
-        for name in manifest["specs"]:
+        wall_names: set[str] = set()
+        for name in manifest_specs:
             if not isinstance(name, str) or Path(name).name != name:
                 raise ValueError("Invalid WallSpec filename in bundle")
-            content = archive.read(f"specs/{name}")
-            parse_spec(content.decode("utf-8"))
+            archive_name = f"specs/{name}"
+            if archive_name not in archive.namelist():
+                raise ValueError(f"Sync bundle is missing {archive_name}")
+            content = archive.read(archive_name)
+            spec = parse_spec(content.decode("utf-8"))
+            if spec.name in wall_names:
+                raise ValueError("Every WallSpec in a sync bundle must have a unique name")
+            wall_names.add(spec.name)
             specs[name] = content
         state = archive.read("state.db") if "state.db" in archive.namelist() else None
+        expected_entries = {"manifest.json", *(f"specs/{name}" for name in manifest_specs)}
+        if state is not None:
+            expected_entries.add("state.db")
+        if set(archive.namelist()) != expected_entries:
+            raise ValueError("Sync bundle contains unexpected files")
 
     existing = [*destination.glob("*.yaml"), *destination.glob("*.yml")]
     existing_state = destination / ".wall" / "state.db"
     if not force and (existing or existing_state.exists()):
         raise FileExistsError("Destination already contains Wall data; pass force=True to replace")
     destination.mkdir(parents=True, exist_ok=True)
+    if force:
+        for path in existing:
+            path.unlink()
+        existing_state.unlink(missing_ok=True)
     for name, content in specs.items():
         atomic_write(destination / name, content)
     if state is not None:
@@ -110,14 +134,18 @@ def import_bundle(
 def sqlite_backup(source: Path) -> bytes:
     with tempfile.TemporaryDirectory(prefix="wall-sync-") as temporary:
         backup_path = Path(temporary) / "state.db"
-        with closing(sqlite3.connect(source)) as original, closing(
-            sqlite3.connect(backup_path)
-        ) as backup:
+        with (
+            closing(sqlite3.connect(source)) as original,
+            closing(sqlite3.connect(backup_path)) as backup,
+        ):
             original.backup(backup)
         return backup_path.read_bytes()
 
 
 def validate_archive(archive: zipfile.ZipFile) -> None:
+    names = [info.filename for info in archive.infolist()]
+    if len(names) != len(set(names)):
+        raise ValueError("Sync bundle contains duplicate archive entries")
     total_size = 0
     for info in archive.infolist():
         path = PurePosixPath(info.filename)

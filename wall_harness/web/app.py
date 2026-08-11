@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import tempfile
 from collections.abc import Callable
@@ -11,7 +12,7 @@ from typing import Literal
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 from starlette.middleware.base import RequestResponseEndpoint
 
 from wall_harness.models import Item, WallEdition, WallSpec
@@ -21,6 +22,8 @@ from wall_harness.state import KnowledgeState
 
 from .workspace import WallRecord, WallWorkspace
 
+logger = logging.getLogger(__name__)
+
 
 class RunRequest(BaseModel):
     use_llm: bool = True
@@ -28,7 +31,7 @@ class RunRequest(BaseModel):
 
 
 class SpecUpdate(BaseModel):
-    yaml: str
+    yaml: str = Field(max_length=1_000_000)
 
 
 class FeedbackRequest(BaseModel):
@@ -38,6 +41,21 @@ class FeedbackRequest(BaseModel):
 
 
 PipelineFactory = Callable[[WallSpec], WallPipeline]
+
+
+def atomic_write_text(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", dir=path.parent, text=True
+    )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as temporary:
+            temporary.write(content)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        os.replace(temporary_name, path)
+    finally:
+        Path(temporary_name).unlink(missing_ok=True)
 
 
 def create_app(
@@ -115,19 +133,16 @@ def create_app(
             spec = parse_spec(update.yaml)
         except (ValueError, ValidationError) as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
+        if any(
+            other.path != record.path and other.spec.name == spec.name
+            for other in workspace.records()
+        ):
+            raise HTTPException(
+                status_code=422,
+                detail="Every WallSpec in a workspace must have a unique name",
+            )
         spec_path = record.path
-        spec_path.parent.mkdir(parents=True, exist_ok=True)
-        descriptor, temporary_name = tempfile.mkstemp(
-            prefix=f".{spec_path.name}.", dir=spec_path.parent, text=True
-        )
-        try:
-            with os.fdopen(descriptor, "w", encoding="utf-8") as temporary:
-                temporary.write(update.yaml)
-                temporary.flush()
-                os.fsync(temporary.fileno())
-            os.replace(temporary_name, spec_path)
-        finally:
-            Path(temporary_name).unlink(missing_ok=True)
+        atomic_write_text(spec_path, update.yaml)
         return spec
 
     @app.post("/api/run", response_model=WallEdition)
@@ -139,11 +154,15 @@ def create_app(
             pipeline.write(edition)
             pipeline.deliver(edition)
         except Exception as exc:
-            raise HTTPException(status_code=502, detail=str(exc)) from exc
+            logger.error("Wall build failed (%s)", type(exc).__name__)
+            raise HTTPException(
+                status_code=502,
+                detail="Wall build failed. Check the server logs for details.",
+            ) from exc
         edition_path = latest_path(spec.name)
-        edition_path.parent.mkdir(parents=True, exist_ok=True)
-        edition_path.write_text(
-            json.dumps(edition.model_dump(mode="json"), indent=2), encoding="utf-8"
+        atomic_write_text(
+            edition_path,
+            json.dumps(edition.model_dump(mode="json"), indent=2),
         )
         return edition
 
@@ -163,5 +182,13 @@ def create_app(
         with KnowledgeState(state_path) as state:
             state.record_feedback(spec.name, request.item, request.action)
         return Response(status_code=204)
+
+    @app.get("/api/feedback")
+    def get_feedback(wall: str | None = None) -> dict[str, str]:
+        spec = select(wall).spec
+        edition = get_edition(wall)
+        item_ids = [result.item.id for result in edition.items] if edition else []
+        with KnowledgeState(state_path) as state:
+            return state.feedback_actions(spec.name, item_ids)
 
     return app

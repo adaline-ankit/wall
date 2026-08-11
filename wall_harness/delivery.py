@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import smtplib
+import ssl
 from email.message import EmailMessage
 
 import httpx
@@ -20,7 +21,9 @@ def deliver_edition(edition: WallEdition, delivery: DeliverySpec) -> list[Delive
                 send_email(edition, target)
             receipts.append(DeliveryReceipt(target=target.type, status="sent"))
         except Exception as exc:
-            receipts.append(DeliveryReceipt(target=target.type, status="failed", detail=str(exc)))
+            receipts.append(
+                DeliveryReceipt(target=target.type, status="failed", detail=type(exc).__name__)
+            )
     return receipts
 
 
@@ -45,7 +48,7 @@ def send_email(edition: WallEdition, target: DeliveryTarget) -> None:
 
     with smtplib.SMTP(target.smtp_host, target.smtp_port, timeout=20) as client:
         if target.starttls:
-            client.starttls()
+            client.starttls(context=ssl.create_default_context())
         if target.username_env or target.password_env:
             if not target.username_env or not target.password_env:
                 raise ValueError("email auth requires both username_env and password_env")

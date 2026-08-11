@@ -52,8 +52,8 @@ def test_email_delivery_uses_smtp_without_embedding_secrets(monkeypatch) -> None
         def __exit__(self, *args):  # type: ignore[no-untyped-def]
             return None
 
-        def starttls(self):  # type: ignore[no-untyped-def]
-            events.append(("tls",))
+        def starttls(self, *, context):  # type: ignore[no-untyped-def]
+            events.append(("tls", context.check_hostname))
 
         def login(self, username, password):  # type: ignore[no-untyped-def]
             events.append(("login", username, password))
@@ -78,6 +78,7 @@ def test_email_delivery_uses_smtp_without_embedding_secrets(monkeypatch) -> None
     )
     receipts = deliver_edition(edition(), delivery)
     assert ("login", "reader", "secret") in events
+    assert ("tls", True) in events
     assert ("send", "reader@example.com", "Wall · systems · 1 item") in events
     assert receipts[0].status == "sent"
 
@@ -90,4 +91,4 @@ def test_delivery_failure_is_a_receipt_not_a_lost_edition(monkeypatch) -> None: 
     delivery = DeliverySpec(targets=[{"type": "webhook", "url": "https://hooks.example.com/wall"}])
     receipts = deliver_edition(edition(), delivery)
     assert receipts[0].status == "failed"
-    assert "offline" in (receipts[0].detail or "")
+    assert receipts[0].detail == "ConnectError"

@@ -11,6 +11,12 @@ class Analyzer(Protocol):
     def analyze(self, item: Item, spec: WallSpec) -> str: ...
 
 
+class Embedder(Protocol):
+    """Optional vector boundary used only when semantic clustering is configured."""
+
+    def embed(self, texts: list[str]) -> list[list[float]]: ...
+
+
 class NoopAnalyzer:
     def analyze(self, item: Item, spec: WallSpec) -> str:
         del item, spec

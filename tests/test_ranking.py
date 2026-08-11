@@ -33,6 +33,7 @@ def test_relevant_novel_item_ranks_above_unrelated_item(tmp_path: Path) -> None:
     )
     with KnowledgeState(tmp_path / "state.db") as state:
         ranked = rank_items([unrelated, relevant], spec(), state)
+    assert len(ranked) == 1
     assert ranked[0].item == relevant
     assert "matches model architecture" in ranked[0].reasons
 
@@ -133,3 +134,41 @@ def test_concept_novelty_recognizes_related_coverage(tmp_path: Path) -> None:
         unrelated_novelty = state.concept_novelty("test-wall", unrelated)
     assert 0 < related_novelty < unrelated_novelty
     assert unrelated_novelty == 1
+
+
+def test_equal_scores_prefer_the_newer_item(tmp_path: Path) -> None:
+    older = Item.create(
+        title="Sparse attention architecture",
+        url="https://example.com/older",
+        summary="model architecture",
+        source="test",
+        published_at=datetime(2026, 8, 10, 23, 59, 59, tzinfo=UTC),
+    )
+    newer = Item.create(
+        title="Sparse attention architecture",
+        url="https://example.com/newer",
+        summary="model architecture",
+        source="test",
+        published_at=datetime(2026, 8, 11, tzinfo=UTC),
+    )
+    with KnowledgeState(tmp_path / "state.db") as state:
+        ranked = rank_items(
+            [older, newer],
+            spec(),
+            state,
+            now=datetime(2026, 8, 11, tzinfo=UTC),
+        )
+    assert ranked[0].score == ranked[1].score
+    assert [result.item for result in ranked] == [newer, older]
+
+
+def test_common_words_do_not_create_a_topic_match(tmp_path: Path) -> None:
+    item = Item.create(
+        title="Where to draw the line",
+        url="https://example.com/unrelated",
+        summary="A recent and entirely unrelated essay for the general reader.",
+        source="test",
+        published_at=datetime.now(UTC),
+    )
+    with KnowledgeState(tmp_path / "state.db") as state:
+        assert rank_items([item], spec(), state) == []

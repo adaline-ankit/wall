@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+from ipaddress import ip_address
 from pathlib import Path
 from typing import Annotated
 
@@ -80,6 +81,13 @@ def serve(
         str, typer.Option(help="Interface to bind; local-only by default")
     ] = "127.0.0.1",
     port: Annotated[int, typer.Option(help="Local dashboard port", min=1, max=65535)] = 8765,
+    allow_network: Annotated[
+        bool,
+        typer.Option(
+            "--allow-network",
+            help="Acknowledge that a non-loopback dashboard has no authentication",
+        ),
+    ] = False,
 ) -> None:
     """Open the interactive local Wall dashboard."""
     import uvicorn
@@ -88,8 +96,21 @@ def serve(
 
     if spec_path.is_file():
         load_spec(spec_path)
+    if not _is_loopback(host) and not allow_network:
+        raise typer.BadParameter(
+            "Non-loopback binding requires --allow-network because the dashboard has no authentication"
+        )
     typer.echo(f"Wall is ready at http://{host}:{port}")
     uvicorn.run(create_app(spec_path), host=host, port=port, log_level="warning")
+
+
+def _is_loopback(host: str) -> bool:
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ip_address(host).is_loopback
+    except ValueError:
+        return False
 
 
 def sync_passphrase() -> str:

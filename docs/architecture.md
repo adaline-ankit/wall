@@ -5,7 +5,7 @@ easy to run, test, and embed. Async fetching and job orchestration can arrive wi
 data contracts.
 
 ```text
-WallSpec ──► source plugins ──► Item[] ──► cluster ──► deterministic rank
+WallSpec ──► source plugins ──► Item[] ──► lexical/semantic cluster ──► deterministic rank
                                                               │
                                   KnowledgeState ◄─────────────┤
                                                               ▼
@@ -21,6 +21,8 @@ WallSpec ──► source plugins ──► Item[] ──► cluster ──► d
 - `WallSpec` is the user-owned, versioned declaration. Pydantic validates it at the edge.
 - `Source.fetch(SourceSpec) -> list[Item]` is the discovery plugin interface.
 - `Analyzer.analyze(Item, WallSpec) -> str` is the LLM boundary.
+- `Embedder.embed(list[str]) -> list[list[float]]` is an optional pre-ranking semantic-clustering
+  boundary. It is disabled by default and independently configurable from analysis.
 - `KnowledgeState` owns exact and concept-level novelty plus explicit feedback. Its SQLite schema is
   private to that adapter and migrates older local databases in place.
 - `WallEdition` is the stable output passed to Markdown, HTML, and JSON renderers.
@@ -63,7 +65,8 @@ failure in the edition.
 
 ## Trust and privacy
 
-Feed contents are untrusted input. The deterministic pipeline treats them as data. When an LLM is
-enabled, only the selected item's title and excerpt are sent; source text cannot change tools or
-configuration. Wall never uploads the SQLite knowledge database. Hosted providers still receive
-selected content, so use `none` or `ollama` for fully local operation.
+Feed contents are untrusted input. The deterministic pipeline treats them as data. When an analyzer
+is enabled, only the selected item's title and excerpt are sent; source text cannot change tools or
+configuration. When embeddings are enabled, discovered titles and bounded excerpts go to that
+provider before ranking. Wall never uploads the SQLite knowledge database. Use `none` or local
+`ollama` providers for fully local operation.

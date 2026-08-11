@@ -8,6 +8,8 @@ import httpx
 
 from wall_harness.models import Item, SourceSpec
 
+from .http import USER_AGENT
+
 
 class RSSSource:
     def fetch(self, spec: SourceSpec) -> list[Item]:
@@ -15,7 +17,7 @@ class RSSSource:
             str(spec.url),
             timeout=20,
             follow_redirects=True,
-            headers={"User-Agent": "Wall/0.1 (+https://github.com/adaline-ankit/wall)"},
+            headers={"User-Agent": USER_AGENT},
         )
         response.raise_for_status()
         feed = feedparser.parse(response.content)
