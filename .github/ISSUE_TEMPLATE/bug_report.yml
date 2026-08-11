@@ -1,0 +1,26 @@
+name: Bug report
+description: Report reproducible incorrect behavior
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping make Wall dependable.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Include the command, expected result, and actual result.
+    validations: {required: true}
+  - type: textarea
+    id: spec
+    attributes:
+      label: Minimal WallSpec or reproduction
+      description: Remove secrets before pasting.
+    validations: {required: true}
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Wall version, Python version, operating system
+    validations: {required: true}

@@ -1,0 +1,22 @@
+name: Feature request
+description: Propose a focused improvement
+title: "[Idea]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Reader problem
+      description: What information or learning workflow is difficult today?
+    validations: {required: true}
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Explain the smallest useful solution and its local-first implications.
+    validations: {required: true}
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations: {required: true}

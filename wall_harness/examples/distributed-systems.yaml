@@ -1,0 +1,15 @@
+version: 1
+name: distributed-systems
+goal: Build practical depth in databases, consensus, reliability, and large-scale systems design.
+topics:
+  - name: distributed systems
+    weight: 2
+    keywords: [database, consensus, replication, reliability]
+sources:
+  - type: rss
+    name: ACM Queue
+    url: https://queue.acm.org/rss/feeds/queuecontent.xml
+ranking: {minimum_score: 0.2, max_items: 10}
+learning: {depth: practitioner}
+delivery: {formats: [markdown, html], output_dir: .wall/output}
+llm: {provider: none}

@@ -1,0 +1,15 @@
+version: 1
+name: frontier-ai
+goal: Understand meaningful changes in frontier model architecture, training, inference, and agent systems.
+topics:
+  - name: frontier language models
+    weight: 2
+    keywords: [foundation model, language model, multimodal model]
+sources:
+  - type: rss
+    name: arXiv AI
+    url: https://export.arxiv.org/rss/cs.AI
+ranking: {minimum_score: 0.2, max_items: 12}
+learning: {depth: deep-dive}
+delivery: {formats: [markdown, html], output_dir: .wall/output}
+llm: {provider: none}
