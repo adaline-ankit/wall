@@ -4,8 +4,10 @@ import json
 import logging
 import os
 import tempfile
+import zipfile
 from collections.abc import Callable
 from hashlib import sha256
+from io import BytesIO
 from pathlib import Path
 from typing import Literal
 
@@ -20,6 +22,17 @@ from wall_harness.pipeline import WallPipeline
 from wall_harness.spec import parse_spec
 from wall_harness.state import KnowledgeState
 
+from .reading import (
+    DraftCreate,
+    DraftUpdate,
+    EntryUpdate,
+    HighlightCreate,
+    NoteCreate,
+    ReadingEntryCreate,
+    ReadingStore,
+    TaskCreate,
+    TaskUpdate,
+)
 from .workspace import WallRecord, WallWorkspace
 
 logger = logging.getLogger(__name__)
@@ -67,6 +80,7 @@ def create_app(
     workspace = WallWorkspace(spec_path)
     workspace.records()
     state_path = (state_path or workspace.root / ".wall" / "state.db").resolve()
+    reading_path = state_path.parent / "reading.db"
     static_path = Path(__file__).parent / "static"
     template_path = Path(__file__).parent / "templates" / "index.html"
 
@@ -111,6 +125,187 @@ def create_app(
     @app.get("/favicon.ico", status_code=204)
     def favicon() -> Response:
         return Response(status_code=204)
+
+    @app.get("/api/reading/entries")
+    def list_reading_entries(status: str | None = None) -> list[dict[str, object]]:
+        with ReadingStore(reading_path) as store:
+            return store.list_entries(status)
+
+    @app.post("/api/reading/entries", status_code=201)
+    def create_reading_entry(request: ReadingEntryCreate) -> dict[str, object]:
+        with ReadingStore(reading_path) as store:
+            return store.create_entry(request)
+
+    @app.get("/api/reading/entries/{entry_id}")
+    def get_reading_entry(entry_id: str) -> dict[str, object]:
+        try:
+            with ReadingStore(reading_path) as store:
+                return store.get_entry(entry_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Reading entry not found") from exc
+
+    @app.patch("/api/reading/entries/{entry_id}")
+    def update_reading_entry(entry_id: str, request: EntryUpdate) -> dict[str, object]:
+        try:
+            with ReadingStore(reading_path) as store:
+                return store.update_entry(entry_id, request)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Reading entry not found") from exc
+
+    @app.post("/api/reading/entries/{entry_id}/notes", status_code=201)
+    def add_reading_note(entry_id: str, request: NoteCreate) -> dict[str, object]:
+        try:
+            with ReadingStore(reading_path) as store:
+                return store.add_note(entry_id, request)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Reading entry not found") from exc
+
+    @app.post("/api/reading/entries/{entry_id}/highlights", status_code=201)
+    def add_reading_highlight(entry_id: str, request: HighlightCreate) -> dict[str, object]:
+        try:
+            with ReadingStore(reading_path) as store:
+                return store.add_highlight(entry_id, request)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Reading entry not found") from exc
+
+    @app.get("/api/reading/tasks")
+    def list_reading_tasks(include_done: bool = True) -> list[dict[str, object]]:
+        with ReadingStore(reading_path) as store:
+            return store.list_tasks(include_done)
+
+    @app.post("/api/reading/tasks", status_code=201)
+    def create_reading_task(request: TaskCreate) -> dict[str, object]:
+        try:
+            with ReadingStore(reading_path) as store:
+                return store.create_task(request)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Reading entry not found") from exc
+
+    @app.patch("/api/reading/tasks/{task_id}")
+    def update_reading_task(task_id: str, request: TaskUpdate) -> dict[str, object]:
+        try:
+            with ReadingStore(reading_path) as store:
+                return store.update_task(task_id, request)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Task not found") from exc
+
+    @app.get("/api/reading/drafts")
+    def list_reading_drafts(status: str | None = None) -> list[dict[str, object]]:
+        with ReadingStore(reading_path) as store:
+            return store.list_drafts(status)
+
+    @app.post("/api/reading/drafts", status_code=201)
+    def create_reading_draft(request: DraftCreate) -> dict[str, object]:
+        try:
+            with ReadingStore(reading_path) as store:
+                return store.create_draft(request)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Reading entry not found") from exc
+
+    @app.get("/api/reading/drafts/{draft_id}")
+    def get_reading_draft(draft_id: str) -> dict[str, object]:
+        try:
+            with ReadingStore(reading_path) as store:
+                return store.get_draft(draft_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Draft not found") from exc
+
+    @app.patch("/api/reading/drafts/{draft_id}")
+    def update_reading_draft(draft_id: str, request: DraftUpdate) -> dict[str, object]:
+        try:
+            with ReadingStore(reading_path) as store:
+                return store.update_draft(draft_id, request)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Draft not found") from exc
+
+    @app.post("/api/reading/drafts/{draft_id}/publish")
+    def publish_reading_draft(draft_id: str) -> dict[str, object]:
+        try:
+            with ReadingStore(reading_path) as store:
+                return store.publish_draft(draft_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Draft not found") from exc
+
+    @app.get("/api/reading/review")
+    def get_weekly_review() -> dict[str, object]:
+        with ReadingStore(reading_path) as store:
+            return store.weekly_review()
+
+    @app.get("/api/reading/export")
+    def export_reading_workspace() -> Response:
+        with ReadingStore(reading_path) as store:
+            entries = store.list_entries()
+            drafts = [store.get_draft(str(draft["id"])) for draft in store.list_drafts()]
+        bundle = BytesIO()
+        with zipfile.ZipFile(bundle, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for entry in entries:
+                filename = f"reading/{entry['id']}.md"
+                tags = entry["tags"]
+                assert isinstance(tags, list)
+                archive.writestr(
+                    filename,
+                    "\n".join(
+                        [
+                            f"# {entry['title']}",
+                            "",
+                            f"- Source: {entry['source']}",
+                            f"- URL: {entry['url'] or ''}",
+                            f"- Status: {entry['status']}",
+                            f"- Tags: {', '.join(str(tag) for tag in tags)}",
+                            "",
+                            str(entry["summary"]),
+                        ]
+                    ),
+                )
+            for draft in drafts:
+                sources = draft["sources"]
+                assert isinstance(sources, list)
+                source_lines = [
+                    f"- [{source['title']}]({source['url']})"
+                    for source in sources
+                    if isinstance(source, dict) and source.get("url")
+                ]
+                archive.writestr(
+                    f"drafts/{draft['slug'] or draft['id']}.md",
+                    "\n".join(
+                        [
+                            f"# {draft['title']}",
+                            "",
+                            str(draft["body"]),
+                            "",
+                            "## Sources",
+                            *source_lines,
+                        ]
+                    ),
+                )
+        return Response(
+            bundle.getvalue(),
+            media_type="application/zip",
+            headers={"Content-Disposition": "attachment; filename=reading-home-export.zip"},
+        )
+
+    @app.get("/read/{slug}", response_class=HTMLResponse)
+    def published_reading_draft(slug: str) -> HTMLResponse:
+        try:
+            with ReadingStore(reading_path) as store:
+                draft = store.public_draft(slug)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Published post not found") from exc
+        sources = draft["sources"]
+        assert isinstance(sources, list)
+        source_links = "".join(
+            f'<li><a href="{source["url"]}">{source["title"]}</a></li>'
+            for source in sources
+            if isinstance(source, dict) and source.get("url")
+        )
+        return HTMLResponse(
+            "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' "
+            "content='width=device-width, initial-scale=1'><title>"
+            f"{draft['title']} — Margin</title><link rel='stylesheet' href='/static/app.css'></head>"
+            "<body class='public-post'><main><p class='eyebrow'>Published from Margin</p>"
+            f"<h1>{draft['title']}</h1><article>{draft['body']}</article>"
+            f"<section><h2>Sources</h2><ul>{source_links}</ul></section></main></body></html>"
+        )
 
     @app.get("/api/walls")
     def get_walls() -> list[dict[str, str]]:
