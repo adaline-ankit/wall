@@ -28,6 +28,8 @@ WallSpec ──► source plugins ──► Item[] ──► cluster ──► d
   never turns a successfully built local edition into an invisible failure.
 - `web.app` exposes the same application contracts through a localhost-only FastAPI service. The
   dashboard never reimplements ranking or writes an invalid spec.
+- `WallWorkspace` resolves either one YAML file or a directory of uniquely named WallSpecs. It
+  rescans on each request so new local walls appear without restarting the process.
 
 Discovery does not rank. Providers do not discover or decide what is eligible. Renderers do not
 reach back into state. These boundaries keep hosted AI optional and make ranking inspectable.

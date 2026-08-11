@@ -73,7 +73,7 @@ def run(
 
 @app.command()
 def serve(
-    spec_path: Annotated[Path, typer.Argument(help="Path to a WallSpec YAML")],
+    spec_path: Annotated[Path, typer.Argument(help="Path to a WallSpec YAML or directory")],
     host: Annotated[
         str, typer.Option(help="Interface to bind; local-only by default")
     ] = "127.0.0.1",
@@ -84,7 +84,8 @@ def serve(
 
     from .web import create_app
 
-    load_spec(spec_path)
+    if spec_path.is_file():
+        load_spec(spec_path)
     typer.echo(f"Wall is ready at http://{host}:{port}")
     uvicorn.run(create_app(spec_path), host=host, port=port, log_level="warning")
 

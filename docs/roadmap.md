@@ -16,7 +16,6 @@
 
 - Read-later adapters
 - A shareable WallSpec registry
-- Multi-wall local dashboard
 - Optional encrypted sync without making cloud accounts mandatory
 
 The project will not trade inspectability or offline usefulness for opaque personalization.

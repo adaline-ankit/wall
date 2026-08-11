@@ -129,11 +129,14 @@ wall validate WALL.YAML            Validate without touching the network
 wall run WALL.YAML [--no-llm]      Build one edition
 wall run WALL.YAML --dry-run       Discover and rank without rendering
 wall serve WALL.YAML               Open the interactive local dashboard
+wall serve ./walls                 Open a workspace containing multiple WallSpecs
 ```
 
-The dashboard runs on `127.0.0.1:8765` by default. It can build editions, edit and validate the
-WallSpec, filter the daily signal, and record `save`, `hide`, `already know`, or `more like this`
-feedback. Feedback stays in the local SQLite knowledge database and changes future ranking.
+The dashboard runs on `127.0.0.1:8765` by default. Point it at one YAML file or a directory of
+WallSpecs; the workspace switcher keeps each latest edition separate while sharing local knowledge.
+It can build editions, edit and validate each WallSpec, filter the daily signal, and record `save`,
+`hide`, `already know`, or `more like this` feedback. Feedback stays in the local SQLite knowledge
+database and changes future ranking.
 
 ### Delivery targets
 

@@ -1,4 +1,4 @@
-const state = { spec: null, edition: null, feedback: new Map(), filter: "all" };
+const state = { walls: [], activeWall: null, spec: null, edition: null, feedback: new Map(), filter: "all" };
 
 const $ = (selector) => document.querySelector(selector);
 const escapeHTML = (value) => {
@@ -43,6 +43,17 @@ function renderSpec() {
   $("#source-list").innerHTML = spec.sources
     .map((source, index) => `<div class="source-row"><span>${String(index + 1).padStart(2, "0")}</span><b>${escapeHTML(source.name || new URL(source.url).hostname)}</b><span>${escapeHTML(source.type)}</span></div>`)
     .join("");
+}
+
+function wallQuery() {
+  return state.activeWall ? `?wall=${encodeURIComponent(state.activeWall)}` : "";
+}
+
+function renderWallPicker() {
+  const picker = $("#wall-picker");
+  picker.hidden = state.walls.length < 2;
+  const options = state.walls.map((wall) => new Option(wall.name, wall.name, false, wall.name === state.activeWall));
+  $("#wall-switch").replaceChildren(...options);
 }
 
 function storyMarkup(result) {
@@ -92,7 +103,7 @@ async function buildWall() {
   button.querySelector("span").textContent = "Discovering signal…";
   showNotice("Reading sources, clustering coverage, and checking what is new to you.");
   try {
-    state.edition = await request("/api/run", { method: "POST", body: JSON.stringify({ use_llm: true }) });
+    state.edition = await request("/api/run", { method: "POST", body: JSON.stringify({ use_llm: true, wall: state.activeWall }) });
     renderEdition();
     const failures = state.edition.source_failures.length;
     showNotice(`Built ${state.edition.items.length} items from ${state.edition.discovered_count} discoveries${failures ? ` · ${failures} source warning${failures > 1 ? "s" : ""}` : ""}.`);
@@ -109,7 +120,7 @@ async function sendFeedback(button) {
   const result = state.edition.items.find((entry) => entry.item.id === story.dataset.id);
   const action = button.dataset.action;
   try {
-    await request("/api/feedback", { method: "POST", body: JSON.stringify({ item: result.item, action }) });
+    await request("/api/feedback", { method: "POST", body: JSON.stringify({ item: result.item, action, wall: state.activeWall }) });
     state.feedback.set(result.item.id, action);
     renderEdition();
     showNotice(action === "hide" ? "Hidden. Future editions will leave this out." : "Preference saved for future editions.");
@@ -119,9 +130,9 @@ async function sendFeedback(button) {
 }
 
 async function openEditor() {
-  const response = await fetch("/api/spec");
+  const response = await fetch(`/api/spec${wallQuery()}`);
   const spec = await response.json();
-  const yaml = await request("/api/spec/source").catch(() => null);
+  const yaml = await request(`/api/spec/source${wallQuery()}`).catch(() => null);
   $("#spec-editor").value = yaml?.content || JSON.stringify(spec, null, 2);
   $("#editor-error").textContent = "";
   $("#spec-dialog").showModal();
@@ -130,7 +141,10 @@ async function openEditor() {
 
 async function saveEditor() {
   try {
-    state.spec = await request("/api/spec", { method: "PUT", body: JSON.stringify({ yaml: $("#spec-editor").value }) });
+    state.spec = await request(`/api/spec${wallQuery()}`, { method: "PUT", body: JSON.stringify({ yaml: $("#spec-editor").value }) });
+    state.activeWall = state.spec.name;
+    state.walls = await request("/api/walls");
+    renderWallPicker();
     renderSpec();
     $("#spec-dialog").close();
     showNotice("WallSpec saved. Build again to apply the new intent.");
@@ -139,12 +153,24 @@ async function saveEditor() {
   }
 }
 
+async function loadWall(name) {
+  state.activeWall = name;
+  state.feedback = new Map();
+  state.spec = await request(`/api/spec${wallQuery()}`);
+  renderSpec();
+  renderWallPicker();
+  state.edition = await request(`/api/edition${wallQuery()}`);
+  if (state.edition) renderEdition();
+  else {
+    $("#edition-date").textContent = "Not built yet";
+    $("#edition-content").innerHTML = `<div class="empty-state"><p class="empty-mark">⌁</p><h3>Nothing noisy. Nothing generic.</h3><p>Build your first edition and Wall will surface only what clears your intent threshold.</p></div>`;
+  }
+}
+
 async function start() {
   try {
-    state.spec = await request("/api/spec");
-    renderSpec();
-    state.edition = await request("/api/edition").catch(() => null);
-    if (state.edition) renderEdition();
+    state.walls = await request("/api/walls");
+    await loadWall(state.walls[0].name);
   } catch (error) {
     showNotice(error.message, true);
   }
@@ -163,6 +189,7 @@ document.querySelectorAll(".filter").forEach((button) => button.addEventListener
 }));
 $("#edit-intent").addEventListener("click", openEditor);
 $("#save-spec").addEventListener("click", saveEditor);
+$("#wall-switch").addEventListener("change", (event) => loadWall(event.target.value).catch((error) => showNotice(error.message, true)));
 $(".theme-toggle").addEventListener("click", () => {
   const next = document.documentElement.dataset.theme === "dark" ? "" : "dark";
   document.documentElement.dataset.theme = next;

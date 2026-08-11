@@ -100,3 +100,21 @@ def test_spec_editor_validates_before_overwriting(tmp_path: Path) -> None:
     assert response.status_code == 200
     assert response.json()["name"] == "edited-wall"
     assert "edited-wall" in spec_path.read_text()
+
+
+def test_directory_workspace_lists_and_switches_walls(tmp_path: Path) -> None:
+    first = tmp_path / "ai.yaml"
+    second = tmp_path / "systems.yaml"
+    write_spec(first)
+    second.write_text(first.read_text().replace("frontier-test", "systems-test"))
+    app = create_app(tmp_path, state_path=tmp_path / ".wall" / "state.db")
+    client = TestClient(app)
+
+    walls = client.get("/api/walls")
+    selected = client.get("/api/spec", params={"wall": "systems-test"})
+    missing = client.get("/api/spec", params={"wall": "missing"})
+
+    assert walls.status_code == 200
+    assert [wall["name"] for wall in walls.json()] == ["frontier-test", "systems-test"]
+    assert selected.json()["name"] == "systems-test"
+    assert missing.status_code == 404
