@@ -106,6 +106,12 @@ class DraftUpdate(BaseModel):
     entry_ids: list[str] | None = Field(default=None, max_length=100)
 
 
+class DraftStarterRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=500)
+    intent: str = Field(default="", max_length=2_000)
+    entry_ids: list[str] = Field(min_length=1, max_length=24)
+
+
 class LibraryQuestion(BaseModel):
     question: str = Field(min_length=2, max_length=1_000)
 
@@ -519,6 +525,12 @@ class ReadingStore:
                 ranked.append((score, detail))
         ranked.sort(key=lambda candidate: (candidate[0], str(candidate[1]["updated_at"])), reverse=True)
         return [entry for _, entry in ranked[:limit]]
+
+    def entries_for_draft_starter(self, entry_ids: list[str]) -> list[dict[str, object]]:
+        unique_ids = list(dict.fromkeys(entry_ids))
+        for entry_id in unique_ids:
+            self._require_entry(entry_id)
+        return [self.get_entry(entry_id) for entry_id in unique_ids]
 
     def close(self) -> None:
         self.connection.close()

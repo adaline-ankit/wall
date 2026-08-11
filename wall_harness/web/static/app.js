@@ -1,4 +1,4 @@
-const state = { entries: [], tasks: [], drafts: [], filter: "all", activeEntry: null };
+const state = { entries: [], tasks: [], drafts: [], filter: "all", activeEntry: null, draftStarter: "" };
 
 const $ = (selector) => document.querySelector(selector);
 const escapeHTML = (value) => {
@@ -124,6 +124,9 @@ async function openDraft(draftId = null, sourceId = null) {
     $("#draft-id").value = draft?.id || "";
     $("#draft-title").value = draft?.title || "";
     $("#draft-body").value = draft?.body || "";
+    $("#draft-intent").value = "";
+    state.draftStarter = "";
+    $("#draft-starter-preview").hidden = true;
     renderSourcePicker(draft ? draft.sources.map((source) => source.id) : sourceId ? [sourceId] : []);
     $("#publish-draft").hidden = !draft || draft.status === "published";
     openDialog("#draft-dialog");
@@ -162,6 +165,47 @@ async function saveDraft(event) {
   } catch (error) {
     showNotice(error.message, true);
   }
+}
+
+function selectedDraftSourceIds() {
+  return [...$("#draft-sources").querySelectorAll("input:checked")].map((input) => input.value);
+}
+
+async function buildDraftStarter() {
+  const title = $("#draft-title").value.trim();
+  const entryIds = selectedDraftSourceIds();
+  if (!title) {
+    showNotice("Give the draft a title before making a starter.", true);
+    $("#draft-title").focus();
+    return;
+  }
+  if (!entryIds.length) {
+    showNotice("Choose at least one source card before making a starter.", true);
+    return;
+  }
+  const button = $("#build-draft-starter");
+  button.disabled = true;
+  button.textContent = "Finding a shape…";
+  try {
+    const result = await request("/api/reading/drafts/starter", { method: "POST", body: JSON.stringify({ title, intent: $("#draft-intent").value, entry_ids: entryIds }) });
+    state.draftStarter = result.body;
+    $("#draft-starter-mode").textContent = result.mode === "ai" ? "AI starter · source set below" : "Local starter · no model used";
+    $("#draft-starter-body").textContent = result.body;
+    $("#draft-starter-preview").hidden = false;
+  } catch (error) {
+    showNotice(error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Make a starter ↗";
+  }
+}
+
+function useDraftStarter() {
+  if (!state.draftStarter) return;
+  const body = $("#draft-body");
+  body.value = body.value.trim() ? `${body.value.trim()}\n\n${state.draftStarter}` : state.draftStarter;
+  body.focus();
+  showNotice("Starter inserted. Keep the parts that sound like you.");
 }
 
 async function publishDraft() {
@@ -243,6 +287,8 @@ $("#import-wall").addEventListener("click", importLatestWall);
 $("#library-ask-form").addEventListener("submit", askLibrary);
 $("#draft-form").addEventListener("submit", saveDraft);
 $("#publish-draft").addEventListener("click", publishDraft);
+$("#build-draft-starter").addEventListener("click", buildDraftStarter);
+$("#use-draft-starter").addEventListener("click", useDraftStarter);
 document.querySelectorAll("[data-close-dialog]").forEach((button) => button.addEventListener("click", () => closeDialog(`#${button.dataset.closeDialog}`)));
 document.querySelectorAll("[data-scroll]").forEach((button) => button.addEventListener("click", () => $(`#${button.dataset.scroll}`).scrollIntoView({ behavior: "smooth" })));
 document.querySelectorAll(".filter").forEach((button) => button.addEventListener("click", () => { state.filter = button.dataset.status; document.querySelectorAll(".filter").forEach((item) => item.classList.toggle("is-active", item === button)); renderEntries(); }));

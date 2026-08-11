@@ -22,12 +22,17 @@ from starlette.middleware.base import RequestResponseEndpoint
 
 from wall_harness.models import Item, WallEdition, WallSpec
 from wall_harness.pipeline import WallPipeline
-from wall_harness.providers.library import assistant_from_spec, local_library_answer
+from wall_harness.providers.library import (
+    assistant_from_spec,
+    local_draft_starter,
+    local_library_answer,
+)
 from wall_harness.spec import parse_spec
 from wall_harness.state import KnowledgeState
 
 from .reading import (
     DraftCreate,
+    DraftStarterRequest,
     DraftUpdate,
     EmailCapture,
     EntryUpdate,
@@ -271,6 +276,35 @@ def create_app(
     def list_reading_drafts(status: str | None = None) -> list[dict[str, object]]:
         with ReadingStore(reading_path) as store:
             return store.list_drafts(status)
+
+    @app.post("/api/reading/drafts/starter")
+    def build_draft_starter(request: DraftStarterRequest) -> dict[str, object]:
+        spec = select().spec
+        with ReadingStore(reading_path) as store:
+            sources = store.entries_for_draft_starter(request.entry_ids)
+        try:
+            assistant = assistant_from_spec(spec)
+        except Exception as exc:
+            logger.error("Draft assistant configuration unavailable (%s)", type(exc).__name__)
+            raise HTTPException(
+                status_code=502,
+                detail="Draft assistance is unavailable. Your sources and notes remain local.",
+            ) from exc
+        if assistant is None:
+            return {
+                "body": local_draft_starter(request.title, request.intent, sources),
+                "sources": sources,
+                "mode": "local",
+            }
+        try:
+            body = assistant.draft_starter(request.title, request.intent, sources, spec)
+        except Exception as exc:
+            logger.error("Draft assistant unavailable (%s)", type(exc).__name__)
+            raise HTTPException(
+                status_code=502,
+                detail="Draft assistance is unavailable. Your sources and notes remain local.",
+            ) from exc
+        return {"body": body, "sources": sources, "mode": "ai"}
 
     @app.post("/api/reading/drafts", status_code=201)
     def create_reading_draft(request: DraftCreate) -> dict[str, object]:

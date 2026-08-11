@@ -37,6 +37,8 @@ write from connected source cards, and publish only the finished draft.
 - Downloadable Markdown export of the reading library and drafts.
 - **Ask your library**: local source retrieval by default, or concise provider-assisted answers tied
   to matching source cards when you opt into an LLM.
+- **Source-backed starters**: turn selected cards and your stated angle into an editable draft
+  shape, preview it, and choose whether to insert it into the editor.
 - Optional single-password protection for a private hosted service via `WALL_APP_PASSWORD`.
 
 Run locally with `wall serve wall.yaml`, or use the documented [private Docker deployment](docs/hosting.md).
@@ -103,7 +105,9 @@ Margin uses this same opt-in setting for **Ask your library**. With `provider: n
 entirely local and returns the saved sources, notes, and highlights matching a question. With a
 provider configured, Margin sends only that selected material—not the whole SQLite library—and
 asks for a concise answer with source-number citations. The source cards remain visible either way;
-AI does not publish or overwrite your notes or drafts.
+AI does not publish or overwrite your notes or drafts. The Writing Studio also has an opt-in
+source-backed starter: it is previewed before you insert it and labels private margin as working
+material that must be rewritten or removed before publishing.
 
 ### Add semantic clustering (optional)
 

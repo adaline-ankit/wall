@@ -33,9 +33,10 @@ WallSpec ──► source plugins ──► Item[] ──► lexical/semantic cl
 - `ReadingStore` is a separate local SQLite adapter for Margin's saved material, notes, highlights,
   contextual tasks, drafts, and source links. Its public-post renderer receives drafts and source
   cards only; it never receives reading notes.
-- `LibraryAssistant.answer(question, selected_sources, WallSpec) -> str` is a second optional LLM
-  boundary for Margin. Local retrieval selects matching material first, then a configured provider
-  may answer from that finite source set with required source-number citations.
+- `LibraryAssistant` is a second optional LLM boundary for Margin. Local retrieval selects matching
+  material first, then a configured provider may answer from that finite source set with required
+  source-number citations or create an editable draft starter. Starters are previewed before they
+  can enter the editor and are never saved or published automatically.
 - `WallWorkspace` resolves either one YAML file or a directory of uniquely named WallSpecs. It
   rescans on each request so new local walls appear without restarting the process.
 - `sync` exports a consistent SQLite backup and specs into a versioned, path-validated archive,

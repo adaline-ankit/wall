@@ -122,6 +122,11 @@
         <input id="draft-id" type="hidden" />
         <label class="draft-title-field"><span class="sr-only">Draft title</span><input id="draft-title" required maxlength="500" placeholder="Give this thought a title" /></label>
         <label class="field"><span>Your draft</span><textarea id="draft-body" maxlength="100000" placeholder="Start from what you noticed. Sources stay connected below."></textarea></label>
+        <section class="draft-assist" aria-labelledby="draft-assist-title">
+          <div class="draft-assist-heading"><div><p class="eyebrow">Source-backed starter</p><h3 id="draft-assist-title">Find a shape, then make it yours.</h3></div><button id="build-draft-starter" class="text-link" type="button">Make a starter ↗</button></div>
+          <label class="field"><span>Writing angle <small>optional</small></span><input id="draft-intent" maxlength="2000" placeholder="What do you want this post to help someone understand?" /></label>
+          <div id="draft-starter-preview" class="draft-starter-preview" hidden><p id="draft-starter-mode" class="eyebrow"></p><pre id="draft-starter-body"></pre><p>This is an editable working draft. Check every claim and remove any private margin before publishing.</p><button id="use-draft-starter" class="button button-secondary" type="button">Insert in editor</button></div>
+        </section>
         <fieldset class="source-picker"><legend>Source cards</legend><div id="draft-sources"></div></fieldset>
         <div class="dialog-actions"><button id="publish-draft" class="text-link" type="button" hidden>Publish now ↗</button><button class="button button-primary" type="submit">Save draft</button></div>
       </form>

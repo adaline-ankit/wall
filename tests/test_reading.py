@@ -36,6 +36,7 @@ def test_reading_home_is_served_as_the_primary_workspace(tmp_path: Path) -> None
     assert "made useful." in page.text
     assert "New draft" in page.text
     assert "Ask your library" in page.text
+    assert "Source-backed starter" in page.text
 
 
 def test_reading_entry_can_gather_notes_tasks_and_a_draft(tmp_path: Path) -> None:
@@ -248,6 +249,40 @@ def test_library_assistant_configuration_failures_do_not_leak_details(
 
     assert answer.status_code == 502
     assert answer.json()["detail"] == "Library assistant is unavailable. Your saved material remains local."
+
+
+def test_source_linked_draft_starter_is_reviewable_before_saving(tmp_path: Path) -> None:
+    client = client_for(tmp_path)
+    entry = client.post(
+        "/api/reading/entries",
+        json={
+            "title": "What repeatable evaluations teach us",
+            "url": "https://example.com/repeatable-evals",
+            "source": "Agent Research",
+            "summary": "Repeated trials expose whether an improvement is stable.",
+            "origin": "manual",
+        },
+    ).json()
+    client.post(
+        f"/api/reading/entries/{entry['id']}/notes",
+        json={"body": "Connect this to why single-run demos are misleading."},
+    )
+
+    starter = client.post(
+        "/api/reading/drafts/starter",
+        json={
+            "title": "Why repeated trials belong in agent evaluation",
+            "intent": "Make the case for a more disciplined evaluation culture.",
+            "entry_ids": [entry["id"]],
+        },
+    )
+
+    assert starter.status_code == 200
+    assert starter.json()["mode"] == "local"
+    assert starter.json()["sources"][0]["id"] == entry["id"]
+    assert "[Source 1]" in starter.json()["body"]
+    assert "single-run demos" in starter.json()["body"]
+    assert client.get("/api/reading/drafts").json() == []
 
 
 def test_published_posts_are_public_while_the_workspace_stays_private(
