@@ -1,4 +1,8 @@
 .env
+.env.local
+.env.*.local
+*.pem
+*.key
 .venv/
 .wall/
 __pycache__/
@@ -12,3 +16,4 @@ dist/
 build/
 *.egg-info/
 work/
+*.wall-sync

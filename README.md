@@ -35,6 +35,7 @@ personal daily diff                    local knowledge state
 - Optional analysis through OpenAI, Anthropic, or local Ollama; **no LLM or API key is required**.
 - Markdown, JSON, and a polished static HTML wall you can open anywhere.
 - Opt-in webhook and SMTP email delivery with credentials read from environment variables.
+- Authenticated encrypted export/import for moving specs and knowledge state between machines.
 - Source and analyzer protocols designed for plugins rather than a hard-coded crawler.
 
 Wall is an early MVP. It does not yet crawl arbitrary pages, learn implicit preferences, deliver
@@ -130,6 +131,8 @@ wall run WALL.YAML [--no-llm]      Build one edition
 wall run WALL.YAML --dry-run       Discover and rank without rendering
 wall serve WALL.YAML               Open the interactive local dashboard
 wall serve ./walls                 Open a workspace containing multiple WallSpecs
+wall sync export ./walls backup.wall-sync
+wall sync import backup.wall-sync ./restored
 ```
 
 The dashboard runs on `127.0.0.1:8765` by default. Point it at one YAML file or a directory of
@@ -157,6 +160,16 @@ delivery:
 
 Delivery is disabled by default. Failures are recorded as receipts without discarding the locally
 built edition. WallSpec contains environment-variable names, never SMTP credentials.
+
+### Encrypted sync bundles
+
+`wall sync export` bundles the workspace WallSpecs and a consistent SQLite knowledge snapshot. It
+derives a key from `WALL_SYNC_PASSPHRASE` (or a hidden interactive prompt) with scrypt and encrypts
+the bundle with AES-256-GCM authenticated encryption. `wall sync import` validates every path and
+WallSpec before writing and refuses to replace existing Wall data unless you pass `--force`.
+
+This is portable, provider-neutral sync: place the encrypted `.wall-sync` file in any transport you
+trust. The passphrase and plaintext never leave the local command.
 
 Run Wall from cron, launchd, systemd, or GitHub Actions. The `delivery.schedule` field is
 documentary in v0.1; Wall intentionally does not install background jobs on your machine.

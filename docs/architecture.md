@@ -30,6 +30,8 @@ WallSpec ──► source plugins ──► Item[] ──► cluster ──► d
   dashboard never reimplements ranking or writes an invalid spec.
 - `WallWorkspace` resolves either one YAML file or a directory of uniquely named WallSpecs. It
   rescans on each request so new local walls appear without restarting the process.
+- `sync` exports a consistent SQLite backup and specs into a versioned, path-validated archive,
+  then protects it with scrypt-derived AES-GCM authenticated encryption.
 
 Discovery does not rank. Providers do not discover or decide what is eligible. Renderers do not
 reach back into state. These boundaries keep hosted AI optional and make ranking inspectable.

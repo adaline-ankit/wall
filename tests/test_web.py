@@ -67,6 +67,9 @@ def test_dashboard_and_spec_api_load(tmp_path: Path) -> None:
     assert "Your daily intent, made visible" in page.text
     assert config.json()["name"] == "frontier-test"
     assert client.get("/api/edition").json() is None
+    assert page.headers["x-frame-options"] == "DENY"
+    assert page.headers["x-content-type-options"] == "nosniff"
+    assert "default-src 'self'" in page.headers["content-security-policy"]
 
 
 def test_run_builds_an_edition_and_persists_latest(tmp_path: Path) -> None:

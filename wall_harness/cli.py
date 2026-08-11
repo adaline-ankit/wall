@@ -11,6 +11,8 @@ from .pipeline import WallPipeline
 from .spec import load_spec
 
 app = typer.Typer(no_args_is_help=True, help="Subscribe to intent, not feeds.")
+sync_app = typer.Typer(no_args_is_help=True, help="Export or restore encrypted Wall data.")
+app.add_typer(sync_app, name="sync")
 
 
 @app.command()
@@ -88,6 +90,40 @@ def serve(
         load_spec(spec_path)
     typer.echo(f"Wall is ready at http://{host}:{port}")
     uvicorn.run(create_app(spec_path), host=host, port=port, log_level="warning")
+
+
+def sync_passphrase() -> str:
+    import os
+
+    return os.getenv("WALL_SYNC_PASSPHRASE") or typer.prompt(
+        "Sync passphrase", hide_input=True, confirmation_prompt=True
+    )
+
+
+@sync_app.command("export")
+def sync_export(
+    workspace: Annotated[Path, typer.Argument(help="WallSpec file or workspace directory")],
+    destination: Annotated[Path, typer.Argument(help="Encrypted .wall-sync destination")],
+    force: Annotated[bool, typer.Option(help="Replace an existing encrypted bundle")] = False,
+) -> None:
+    """Create an authenticated encrypted bundle of specs and knowledge state."""
+    from .sync import export_bundle
+
+    export_bundle(workspace, destination, sync_passphrase(), force=force)
+    typer.echo(f"Encrypted Wall bundle written to {destination}")
+
+
+@sync_app.command("import")
+def sync_import(
+    source: Annotated[Path, typer.Argument(help="Encrypted .wall-sync bundle")],
+    destination: Annotated[Path, typer.Argument(help="Workspace directory to restore")],
+    force: Annotated[bool, typer.Option(help="Replace existing Wall data")] = False,
+) -> None:
+    """Restore a bundle, refusing to replace local data unless forced."""
+    from .sync import import_bundle
+
+    import_bundle(source, destination, sync_passphrase(), force=force)
+    typer.echo(f"Wall workspace restored to {destination}")
 
 
 if __name__ == "__main__":

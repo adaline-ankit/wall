@@ -8,10 +8,11 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ValidationError
+from starlette.middleware.base import RequestResponseEndpoint
 
 from wall_harness.models import Item, WallEdition, WallSpec
 from wall_harness.pipeline import WallPipeline
@@ -53,6 +54,22 @@ def create_app(
 
     app = FastAPI(title="Wall", docs_url="/api/docs", redoc_url=None)
     app.mount("/static", StaticFiles(directory=static_path), name="static")
+
+    @app.middleware("http")
+    async def security_headers(request: Request, call_next: RequestResponseEndpoint) -> Response:
+        response = await call_next(request)
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; script-src 'self'; style-src 'self'; "
+            "img-src 'self' data:; connect-src 'self'; object-src 'none'; "
+            "base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+        )
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        if request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
 
     def make_pipeline(spec: WallSpec) -> WallPipeline:
         if pipeline_factory:

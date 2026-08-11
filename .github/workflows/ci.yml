@@ -23,3 +23,4 @@ jobs:
       - run: ruff check .
       - run: mypy wall_harness
       - run: pytest --cov=wall_harness --cov-report=term-missing
+      - run: pip-audit . --ignore-vuln PYSEC-2026-3552

@@ -16,6 +16,6 @@
 
 - Read-later adapters
 - A shareable WallSpec registry
-- Optional encrypted sync without making cloud accounts mandatory
+- Optional pluggable transports for already-encrypted sync bundles
 
 The project will not trade inspectability or offline usefulness for opaque personalization.
