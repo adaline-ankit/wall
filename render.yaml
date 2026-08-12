@@ -13,3 +13,5 @@ services:
         generateValue: true
       - key: WALL_CAPTURE_TOKEN
         generateValue: true
+      - key: WALL_REFRESH_TOKEN
+        generateValue: true

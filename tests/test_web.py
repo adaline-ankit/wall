@@ -233,6 +233,52 @@ def test_capture_token_can_write_to_the_inbox_but_cannot_read_the_private_app(
     assert read_attempt.headers["www-authenticate"] == 'Basic realm="Margin"'
 
 
+def test_refresh_token_can_refresh_without_reading_or_using_llm(
+    tmp_path: Path, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    spec_path = tmp_path / "wall.yaml"
+    write_spec(spec_path)
+    monkeypatch.setenv("WALL_APP_PASSWORD", "private-service-password")
+    monkeypatch.setenv("WALL_REFRESH_TOKEN", "narrow-refresh-token")
+    analyzer_calls: list[str] = []
+
+    class FailingAnalyzer:
+        def analyze(self, item: Item, spec) -> str:  # type: ignore[no-untyped-def]
+            analyzer_calls.append(item.id)
+            raise AssertionError("scheduler should not invoke the analyzer")
+
+    app = create_app(
+        spec_path,
+        state_path=tmp_path / ".wall" / "state.db",
+        pipeline_factory=lambda spec: WallPipeline(
+            spec,
+            state_path=tmp_path / ".wall" / "state.db",
+            sources={"fake": FakeSource()},
+            analyzer=FailingAnalyzer(),
+        ),
+    )
+    client = TestClient(app)
+
+    rejected = client.post("/api/reading/refresh", json={"use_llm": False})
+    refreshed = client.post(
+        "/api/reading/refresh",
+        headers={"Authorization": "Bearer narrow-refresh-token"},
+        json={"use_llm": True},
+    )
+    read_attempt = client.get(
+        "/api/reading/entries",
+        headers={"Authorization": "Bearer narrow-refresh-token"},
+    )
+
+    assert rejected.status_code == 401
+    assert rejected.headers["www-authenticate"] == "Bearer"
+    assert refreshed.status_code == 201
+    assert refreshed.json()["imported_count"] == 1
+    assert analyzer_calls == []
+    assert read_attempt.status_code == 401
+    assert read_attempt.headers["www-authenticate"] == 'Basic realm="Margin"'
+
+
 def test_wall_edition_can_be_added_to_the_reading_inbox_without_duplicates(tmp_path: Path) -> None:
     client, _ = make_client(tmp_path)
     client.post("/api/run", json={"use_llm": False})

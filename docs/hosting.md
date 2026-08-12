@@ -68,6 +68,20 @@ local extension storage and sends the current tab's title, URL, optional note, a
 the browser capture route. It never receives `WALL_APP_PASSWORD` and does not read page contents,
 cookies, or your Margin library.
 
+### Schedule a safe daily refresh
+
+Set `WALL_REFRESH_TOKEN` and have your scheduler `POST` to `/api/reading/refresh` with that Bearer
+token once per day. The token can only run a deterministic refresh and add selected items to the
+inbox; it cannot read Margin or invoke an LLM provider. This makes a scheduled call safe to keep in
+an automation secret store. The Render Blueprint generates the token, but Render's free web service
+can sleep, so use an external scheduler only when you need a reliable cadence.
+
+```bash
+curl -X POST -H "Authorization: Bearer $WALL_REFRESH_TOKEN" \
+  -H 'content-type: application/json' -d '{"use_llm":false}' \
+  https://margin.example.com/api/reading/refresh
+```
+
 ## Health check
 
 `GET /healthz` returns `{"status":"ok"}` and is intentionally unauthenticated so a local container health check can use it.

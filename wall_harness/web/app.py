@@ -112,10 +112,12 @@ def create_app(
     app.mount("/static", StaticFiles(directory=static_path), name="static")
     app_password = os.getenv("WALL_APP_PASSWORD")
     capture_token = os.getenv("WALL_CAPTURE_TOKEN")
+    refresh_token = os.getenv("WALL_REFRESH_TOKEN")
     capture_paths = {
         "/api/reading/captures/browser",
         "/api/reading/captures/email",
     }
+    refresh_path = "/api/reading/refresh"
 
     def has_valid_password(request: Request) -> bool:
         if not app_password:
@@ -131,37 +133,48 @@ def create_app(
         username, separator, password = decoded.partition(":")
         return bool(separator and username) and secrets.compare_digest(password, app_password)
 
-    def has_valid_capture_token(request: Request) -> bool:
-        if not capture_token:
+    def has_valid_bearer_token(request: Request, expected_token: str | None) -> bool:
+        if not expected_token:
             return False
         scheme, _, token = request.headers.get("Authorization", "").partition(" ")
         return (
             bool(token)
             and scheme.lower() == "bearer"
-            and secrets.compare_digest(token, capture_token)
+            and secrets.compare_digest(token, expected_token)
         )
 
     def is_capture_request(request: Request) -> bool:
         return request.method == "POST" and request.url.path in capture_paths
+
+    def is_refresh_request(request: Request) -> bool:
+        return request.method == "POST" and request.url.path == refresh_path
 
     @app.middleware("http")
     async def password_protection(request: Request, call_next: RequestResponseEndpoint) -> Response:
         is_public_asset = request.url.path.startswith("/static/")
         is_public_post = request.url.path.startswith("/read/")
         capture_request = is_capture_request(request)
+        refresh_request = is_refresh_request(request)
         private_request = (
             request.url.path != "/healthz" and not is_public_asset and not is_public_post
         )
-        capture_authorized = capture_request and has_valid_capture_token(request)
+        capture_authorized = capture_request and has_valid_bearer_token(request, capture_token)
+        refresh_authorized = refresh_request and has_valid_bearer_token(request, refresh_token)
         password_authorized = has_valid_password(request)
         capture_token_required = capture_request and bool(capture_token)
+        refresh_token_required = refresh_request and bool(refresh_token)
         should_reject = private_request and not (
             capture_authorized
+            or refresh_authorized
             or password_authorized
-            or (not app_password and not capture_token_required)
+            or (not app_password and not capture_token_required and not refresh_token_required)
         )
         if should_reject:
-            authentication_header = "Bearer" if capture_token_required else 'Basic realm="Margin"'
+            authentication_header = (
+                "Bearer"
+                if capture_token_required or refresh_token_required
+                else 'Basic realm="Margin"'
+            )
             return Response(
                 status_code=401,
                 headers={"WWW-Authenticate": authentication_header},
@@ -268,13 +281,18 @@ def create_app(
         return {"imported_count": import_edition(edition)}
 
     @app.post("/api/reading/refresh", response_model=ReadingRefreshResponse, status_code=201)
-    def refresh_reading_inbox(request: ReadingRefreshRequest) -> ReadingRefreshResponse:
+    def refresh_reading_inbox(
+        request: ReadingRefreshRequest, http_request: Request
+    ) -> ReadingRefreshResponse:
         """Build the selected Wall and add only its new signal to Margin's inbox."""
 
         spec = select(request.wall).spec
         try:
             pipeline = make_pipeline(spec)
-            edition = pipeline.run(use_llm=request.use_llm)
+            # A scheduler token is intentionally unable to initiate provider calls. It can keep the
+            # inbox fresh, while LLM use remains an explicit owner action behind Basic auth.
+            use_llm = request.use_llm and not has_valid_bearer_token(http_request, refresh_token)
+            edition = pipeline.run(use_llm=use_llm)
             pipeline.write(edition)
         except Exception as exc:
             logger.error("Reading refresh failed (%s)", type(exc).__name__)

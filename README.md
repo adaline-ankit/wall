@@ -44,6 +44,8 @@ write from connected source cards, and publish only the finished draft.
 - Optional single-password protection for a private hosted service via `WALL_APP_PASSWORD`.
 - A narrow optional `WALL_CAPTURE_TOKEN` for browser and inbound-email connectors. It can only add
   a captured item; it cannot read the private library, notes, tasks, drafts, or exports.
+- A separate `WALL_REFRESH_TOKEN` for an external daily scheduler. It can refresh the inbox with
+  deterministic local ranking but cannot read Margin or invoke an LLM provider.
 
 Run locally with `wall serve wall.yaml`, or use the documented [private Docker deployment](docs/hosting.md).
 The browser and email capture routes are intentionally narrow HTTP contracts. For a hosted service,
@@ -238,7 +240,9 @@ This is portable, provider-neutral sync: place the encrypted `.wall-sync` file i
 trust. The passphrase and plaintext never leave the local command.
 
 Run Wall from cron, launchd, systemd, or GitHub Actions. The `delivery.schedule` field is
-documentary in v0.4; Wall intentionally does not install background jobs on your machine.
+documentary in v0.6; Wall intentionally does not install background jobs on your machine. A hosted
+Margin can instead use its narrow `WALL_REFRESH_TOKEN` with an external scheduler; see
+[hosting](docs/hosting.md#schedule-a-safe-daily-refresh).
 
 ## Philosophy
 

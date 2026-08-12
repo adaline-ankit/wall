@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 — 2026-08-12
+
+- Add `WALL_REFRESH_TOKEN`, a narrow scheduler credential that can refresh the selected Wall and
+  import its new items without exposing the private workspace.
+- Fail closed when the token is configured and prevent refresh-token callers from initiating LLM
+  analysis, so an unattended schedule cannot create surprise provider spend.
+
 ## 0.5.0 — 2026-08-12
 
 - Ship **Save to Margin**, a dependency-free Manifest V3 Chrome connector that saves the current
