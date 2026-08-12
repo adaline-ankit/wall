@@ -19,7 +19,7 @@ def test_rss_source_fetches_with_a_bounded_timeout(monkeypatch) -> None:  # type
         captured.update(options)
         return httpx.Response(200, content=content, request=httpx.Request("GET", str(url)))
 
-    monkeypatch.setattr("wall_harness.sources.rss.httpx.get", fake_get)
+    monkeypatch.setattr("wall_harness.sources.http.httpx.get", fake_get)
     items = RSSSource().fetch(SourceSpec(url="https://example.com/feed"))
     assert captured["timeout"] == 20
     assert captured["follow_redirects"] is True
@@ -32,7 +32,8 @@ def test_rss_source_surfaces_http_errors(monkeypatch) -> None:  # type: ignore[n
         del options
         return httpx.Response(503, request=httpx.Request("GET", str(url)))
 
-    monkeypatch.setattr("wall_harness.sources.rss.httpx.get", fake_get)
+    monkeypatch.setattr("wall_harness.sources.http.httpx.get", fake_get)
+    monkeypatch.setattr("wall_harness.sources.http.time.sleep", lambda seconds: None)
     try:
         RSSSource().fetch(SourceSpec(url="https://example.com/feed"))
     except httpx.HTTPStatusError as exc:

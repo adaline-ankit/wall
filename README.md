@@ -61,6 +61,8 @@ you can load locally today.
 - A versioned YAML **WallSpec** for goals, weighted topics, exclusions, sources, learning depth,
   ranking policy, providers, and delivery formats.
 - RSS/Atom, Hacker News, GitHub search, OpenReview, and readable web-page discovery.
+- Bounded, polite source retries for temporary transport failures, 408/429, and selected 5xx
+  responses; `Retry-After` is honored up to a safe per-attempt limit.
 - URL deduplication plus content-aware clustering, with opt-in Ollama/OpenAI embeddings for
   semantically equivalent coverage.
 - Transparent ranking using topical match, recency, source weight, and personal novelty.

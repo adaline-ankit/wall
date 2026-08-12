@@ -4,22 +4,15 @@ import calendar
 from datetime import UTC, datetime
 
 import feedparser
-import httpx
 
 from wall_harness.models import Item, SourceSpec
 
-from .http import USER_AGENT
+from .http import get
 
 
 class RSSSource:
     def fetch(self, spec: SourceSpec) -> list[Item]:
-        response = httpx.get(
-            str(spec.url),
-            timeout=20,
-            follow_redirects=True,
-            headers={"User-Agent": USER_AGENT},
-        )
-        response.raise_for_status()
+        response = get(str(spec.url))
         feed = feedparser.parse(response.content)
         if getattr(feed, "bozo", False) and not feed.entries:
             raise RuntimeError(f"Could not read feed {spec.url}: {feed.bozo_exception}")

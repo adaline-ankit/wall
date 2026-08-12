@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.14.0 — 2026-08-12
+
+- Retry temporary source fetch failures consistently across RSS/Atom, JSON APIs, and web pages.
+  Wall makes at most three GET attempts for transport failures, 408/429, and selected 5xx errors;
+  it fails permanent client errors immediately.
+- Respect numeric or date-based `Retry-After` responses while bounding each wait to 30 seconds,
+  so a source can ask Wall to slow down without stalling a whole scheduled run indefinitely.
+
 ## 0.13.0 — 2026-08-12
 
 - Add **Today's Wall** to Margin: the latest local Wall edition now appears as a compact daily
