@@ -314,6 +314,12 @@ class ReadingStore:
             raise KeyError("Refresh job not found")
         return self._row(row)
 
+    def latest_refresh_job(self) -> dict[str, object] | None:
+        row = self.connection.execute(
+            "SELECT * FROM reading_refresh_jobs ORDER BY created_at DESC LIMIT 1"
+        ).fetchone()
+        return self._row(row) if row is not None else None
+
     def list_entries(self, status: str | None = None) -> list[dict[str, object]]:
         query = "SELECT * FROM reading_entries"
         params: tuple[str, ...] = ()

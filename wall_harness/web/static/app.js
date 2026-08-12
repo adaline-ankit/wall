@@ -1,4 +1,4 @@
-const state = { entries: [], tasks: [], drafts: [], filter: "all", activeEntry: null, draftStarter: "" };
+const state = { entries: [], tasks: [], drafts: [], refresh: null, filter: "all", activeEntry: null, draftStarter: "" };
 
 const $ = (selector) => document.querySelector(selector);
 const escapeHTML = (value) => {
@@ -13,6 +13,7 @@ const relativeDate = (value) => {
   if (days === 1) return "yesterday";
   return `${days} days ago`;
 };
+const refreshDate = (value) => new Intl.DateTimeFormat(undefined, { weekday: "short", hour: "numeric", minute: "2-digit" }).format(new Date(value));
 
 async function request(path, options = {}) {
   const response = await fetch(path, {
@@ -67,6 +68,24 @@ function renderEntries() {
     : emptyState("No entries here yet.", "Your saved links, forwarded emails, and Wall discoveries will live here.", "Save something", "capture");
 }
 
+function renderRefreshStatus() {
+  const status = $("#refresh-status");
+  const job = state.refresh;
+  if (!job) {
+    status.textContent = "No scheduled refresh has run yet.";
+    return;
+  }
+  if (job.status === "completed") {
+    status.textContent = `Daily refresh ${refreshDate(job.completed_at || job.created_at)} · ${job.item_count} selected · ${job.imported_count} new`;
+    return;
+  }
+  if (job.status === "failed") {
+    status.textContent = `The daily refresh failed ${relativeDate(job.completed_at || job.created_at)}. You can refresh sources now.`;
+    return;
+  }
+  status.textContent = "A daily refresh is in progress…";
+}
+
 function renderDrafts() {
   $("#draft-list").innerHTML = state.drafts.length
     ? state.drafts.map((draft) => `<article class="draft-card"><div><p class="eyebrow">${draft.status === "published" ? "Published" : "In progress"}</p><h3>${escapeHTML(draft.title)}</h3><p>${escapeHTML(draft.body || "A blank page with its sources waiting.")}</p></div><div class="draft-card-footer"><span>${draft.status === "published" ? `<a href="/read/${encodeURIComponent(draft.slug)}" target="_blank" rel="noreferrer">Read post ↗</a>` : `${relativeDate(draft.updated_at)} · private`}</span><button class="text-link" type="button" data-open-draft="${draft.id}">Open studio <span aria-hidden="true">↗</span></button></div></article>`).join("")
@@ -75,15 +94,17 @@ function renderDrafts() {
 
 async function loadWorkspace() {
   try {
-    [state.entries, state.tasks, state.drafts] = await Promise.all([
+    [state.entries, state.tasks, state.drafts, state.refresh] = await Promise.all([
       request("/api/reading/entries"),
       request("/api/reading/tasks"),
       request("/api/reading/drafts"),
+      request("/api/reading/refresh-status"),
     ]);
     renderFocus();
     renderReview();
     renderEntries();
     renderDrafts();
+    renderRefreshStatus();
   } catch (error) {
     showNotice(error.message, true);
   }

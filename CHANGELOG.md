@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.0 — 2026-08-12
+
+- Show the last scheduled refresh, its completion state, selected items, and new inbox additions in
+  the private Margin dashboard.
+- Keep this operational view owner-only; the narrow scheduler token may still read only the status
+  of a job whose ID it already holds.
+- Correct the writing-studio empty-state contrast so it meets the same accessible visual baseline.
+
 ## 0.10.0 — 2026-08-12
 
 - Cache lexical representations during duplicate clustering, avoiding repeated tokenization for every

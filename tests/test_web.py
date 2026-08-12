@@ -376,6 +376,43 @@ def test_refresh_token_can_submit_and_read_only_its_refresh_job(
     assert entries.status_code == 401
 
 
+def test_owner_can_see_latest_scheduled_refresh_but_token_cannot(
+    tmp_path: Path, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    spec_path = tmp_path / "wall.yaml"
+    write_spec(spec_path)
+    monkeypatch.setenv("WALL_APP_PASSWORD", "private-service-password")
+    monkeypatch.setenv("WALL_REFRESH_TOKEN", "narrow-refresh-token")
+    client, _ = make_client(tmp_path)
+
+    empty = client.get(
+        "/api/reading/refresh-status",
+        headers={"Authorization": f"Basic {b64encode(b'margin:private-service-password').decode()}"},
+    )
+    submitted = client.post(
+        "/api/reading/refresh",
+        headers={"Authorization": "Bearer narrow-refresh-token"},
+        json={"use_llm": False, "asynchronous": True},
+    )
+    owner_status = client.get(
+        "/api/reading/refresh-status",
+        headers={"Authorization": f"Basic {b64encode(b'margin:private-service-password').decode()}"},
+    )
+    token_status = client.get(
+        "/api/reading/refresh-status",
+        headers={"Authorization": "Bearer narrow-refresh-token"},
+    )
+
+    assert empty.status_code == 200
+    assert empty.json() is None
+    assert submitted.status_code == 202
+    assert owner_status.status_code == 200
+    assert owner_status.json()["id"] == submitted.json()["job_id"]
+    assert owner_status.json()["status"] == "completed"
+    assert token_status.status_code == 401
+    assert token_status.headers["www-authenticate"] == 'Basic realm="Margin"'
+
+
 def test_wall_edition_can_be_added_to_the_reading_inbox_without_duplicates(tmp_path: Path) -> None:
     client, _ = make_client(tmp_path)
     client.post("/api/run", json={"use_llm": False})

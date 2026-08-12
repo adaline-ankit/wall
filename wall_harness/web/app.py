@@ -381,6 +381,13 @@ def create_app(
                 detail="Source refresh failed. Check the server logs for details.",
             ) from exc
 
+    @app.get("/api/reading/refresh-status")
+    def get_latest_reading_refresh() -> dict[str, object] | None:
+        """Expose scheduler health to the owner dashboard, never to the scheduler token."""
+
+        with ReadingStore(reading_path) as store:
+            return store.latest_refresh_job()
+
     @app.get("/api/reading/refreshes/{job_id}")
     def get_reading_refresh(job_id: str) -> dict[str, object]:
         try:
