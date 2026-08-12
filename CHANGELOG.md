@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.15.0 — 2026-08-12
+
+- Persist the latest health result for every configured source: success/failure, selected source
+  type, item count, and a sanitized failure class. Source identities are hashed locally; query
+  strings and credentials are not written to the health record.
+- Add an owner-only source-health API and Margin status line. A refresh now says whether all
+  sources responded or identifies the evidence channel that needs attention.
+
 ## 0.14.0 — 2026-08-12
 
 - Retry temporary source fetch failures consistently across RSS/Atom, JSON APIs, and web pages.

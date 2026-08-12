@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 
-USER_AGENT = "Wall/0.14 (+https://github.com/adaline-ankit/wall)"
+USER_AGENT = "Wall/0.15 (+https://github.com/adaline-ankit/wall)"
 MAX_ATTEMPTS = 3
 MAX_RETRY_DELAY_SECONDS = 30.0
 RETRYABLE_STATUS_CODES = {408, 429, 500, 502, 503, 504}

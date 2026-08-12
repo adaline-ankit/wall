@@ -82,6 +82,10 @@ def test_run_builds_an_edition_and_persists_latest(tmp_path: Path) -> None:
     assert latest.status_code == 200
     assert latest.json()["wall_name"] == "frontier-test"
     assert 'id="daily-wall"' in client.get("/").text
+    assert 'id="source-health"' in client.get("/").text
+    health = client.get("/api/sources/health")
+    assert health.status_code == 200
+    assert health.json()[0]["status"] == "ok"
 
 
 def test_feedback_changes_future_editions(tmp_path: Path) -> None:

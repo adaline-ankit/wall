@@ -688,6 +688,12 @@ def create_app(
         except (OSError, ValidationError) as exc:
             raise HTTPException(status_code=500, detail="Latest edition is unreadable") from exc
 
+    @app.get("/api/sources/health")
+    def get_source_health(wall: str | None = None) -> list[dict[str, object]]:
+        spec = select(wall).spec
+        with KnowledgeState(state_path) as state:
+            return state.source_health(spec.name)
+
     @app.post("/api/feedback", status_code=204)
     def record_feedback(request: FeedbackRequest) -> Response:
         spec = select(request.wall).spec

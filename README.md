@@ -33,6 +33,8 @@ write from connected source cards, and publish only the finished draft.
 - One private inbox for manual saves, browser-save webhooks, forwarded-email webhooks, and Wall/RSS discoveries.
 - **Refresh sources** runs the selected Wall from Margin and imports only its newly selected items; it
   uses local ranking by default and does not trigger delivery targets.
+- Per-source health immediately below refresh controls, so a private hosted Wall identifies a
+  failing evidence channel by name instead of silently losing it from the daily brief.
 - Notes, highlights, tasks, and drafts connected to the reading item that created them.
 - A weekly review that surfaces unfinished tasks and private drafts.
 - Source-linked drafts and a separate public-post route that never includes private working notes.

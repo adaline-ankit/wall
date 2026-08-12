@@ -41,10 +41,12 @@ class WallPipeline:
         items: list[Item] = []
         failures: list[str] = []
         fetches: list[tuple[SourceSpec, Source]] = []
+        health: list[tuple[SourceSpec, str, int, str | None]] = []
         for source_spec in self.spec.sources:
             source = self.sources.get(source_spec.type)
             if source is None:
                 failures.append(f"unknown source type {source_spec.type!r}")
+                health.append((source_spec, "failed", 0, "unknown source type"))
                 continue
             fetches.append((source_spec, source))
 
@@ -55,9 +57,22 @@ class WallPipeline:
             futures = [pool.submit(source.fetch, source_spec) for source_spec, source in fetches]
             for (source_spec, _), future in zip(fetches, futures, strict=True):
                 try:
-                    items.extend(future.result())
+                    found = future.result()
+                    items.extend(found)
+                    health.append((source_spec, "ok", len(found), None))
                 except Exception as exc:
                     failures.append(f"{source_label(source_spec)}: {failure_reason(exc)}")
+                    health.append((source_spec, "failed", 0, failure_reason(exc)))
+        with KnowledgeState(self.state_path) as state:
+            for source_spec, status, item_count, detail in health:
+                state.record_source_health(
+                    self.spec.name,
+                    source_spec,
+                    source_label=source_label(source_spec),
+                    status=status,
+                    item_count=item_count,
+                    detail=detail,
+                )
         if not items and failures:
             raise RuntimeError("All sources failed: " + "; ".join(failures))
         self.source_failures = failures

@@ -3,7 +3,7 @@
 ## Now — solidify the local harness
 
 - ~~Per-source retries for built-in discovery~~
-- Caching, rate limits, and health reporting
+- Caching and rate limits
 - Versioned knowledge-state migrations and repair tooling
 - Richer feed fixtures and parser diagnostics
 

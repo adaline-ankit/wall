@@ -4,6 +4,7 @@ from threading import Barrier
 from wall_harness.models import Item, SourceSpec, Topic, WallSpec
 from wall_harness.pipeline import WallPipeline
 from wall_harness.providers import NoopAnalyzer
+from wall_harness.state import KnowledgeState
 
 
 class FakeSource:
@@ -111,6 +112,23 @@ def test_pipeline_reports_source_failures_without_losing_results(tmp_path: Path)
     )
     edition = pipeline.run()
     assert edition.source_failures == ["https://example.com/broken: RuntimeError"]
+    with KnowledgeState(tmp_path / "state.db") as state:
+        assert state.source_health("systems") == [
+            {
+                "source_label": "https://example.com/broken",
+                "source_type": "broken",
+                "status": "failed",
+                "item_count": 0,
+                "detail": "RuntimeError",
+            },
+            {
+                "source_label": "https://example.com/ok",
+                "source_type": "fake",
+                "status": "ok",
+                "item_count": 1,
+                "detail": None,
+            },
+        ]
 
 
 def test_source_failure_redacts_url_credentials(tmp_path: Path) -> None:

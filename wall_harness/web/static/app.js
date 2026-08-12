@@ -1,4 +1,4 @@
-const state = { entries: [], tasks: [], drafts: [], refresh: null, edition: null, filter: "all", activeEntry: null, draftStarter: "" };
+const state = { entries: [], tasks: [], drafts: [], refresh: null, sourceHealth: [], edition: null, filter: "all", activeEntry: null, draftStarter: "" };
 
 const $ = (selector) => document.querySelector(selector);
 const escapeHTML = (value) => {
@@ -102,6 +102,24 @@ function renderRefreshStatus() {
   status.textContent = "A daily refresh is in progress…";
 }
 
+function renderSourceHealth() {
+  const status = $("#source-health");
+  if (!state.sourceHealth.length) {
+    status.textContent = "Source health will appear after your first refresh.";
+    status.classList.remove("is-error");
+    return;
+  }
+  const failures = state.sourceHealth.filter((source) => source.status === "failed");
+  if (!failures.length) {
+    status.textContent = `Source health · ${state.sourceHealth.length} source${state.sourceHealth.length === 1 ? "" : "s"} responding`;
+    status.classList.remove("is-error");
+    return;
+  }
+  const names = failures.map((source) => source.source_label).join(", ");
+  status.textContent = `Source health · ${names} needs attention`;
+  status.classList.add("is-error");
+}
+
 function renderDrafts() {
   $("#draft-list").innerHTML = state.drafts.length
     ? state.drafts.map((draft) => `<article class="draft-card"><div><p class="eyebrow">${draft.status === "published" ? "Published" : "In progress"}</p><h3>${escapeHTML(draft.title)}</h3><p>${escapeHTML(draft.body || "A blank page with its sources waiting.")}</p></div><div class="draft-card-footer"><span>${draft.status === "published" ? `<a href="/read/${encodeURIComponent(draft.slug)}" target="_blank" rel="noreferrer">Read post ↗</a>` : `${relativeDate(draft.updated_at)} · private`}</span><button class="text-link" type="button" data-open-draft="${draft.id}">Open studio <span aria-hidden="true">↗</span></button></div></article>`).join("")
@@ -110,11 +128,12 @@ function renderDrafts() {
 
 async function loadWorkspace() {
   try {
-    [state.entries, state.tasks, state.drafts, state.refresh, state.edition] = await Promise.all([
+    [state.entries, state.tasks, state.drafts, state.refresh, state.sourceHealth, state.edition] = await Promise.all([
       request("/api/reading/entries"),
       request("/api/reading/tasks"),
       request("/api/reading/drafts"),
       request("/api/reading/refresh-status"),
+      request("/api/sources/health"),
       request("/api/edition"),
     ]);
     renderDailyWall();
@@ -123,6 +142,7 @@ async function loadWorkspace() {
     renderEntries();
     renderDrafts();
     renderRefreshStatus();
+    renderSourceHealth();
   } catch (error) {
     showNotice(error.message, true);
   }
