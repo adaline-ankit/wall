@@ -1,4 +1,4 @@
-const state = { entries: [], tasks: [], drafts: [], refresh: null, filter: "all", activeEntry: null, draftStarter: "" };
+const state = { entries: [], tasks: [], drafts: [], refresh: null, edition: null, filter: "all", activeEntry: null, draftStarter: "" };
 
 const $ = (selector) => document.querySelector(selector);
 const escapeHTML = (value) => {
@@ -50,6 +50,22 @@ function renderFocus() {
     : emptyState("Your margin is clear.", "Save one article, paper, or link you want to think with.", "Save your first thing", "capture");
 }
 
+function renderDailyWall() {
+  const section = $("#daily-wall");
+  const edition = state.edition;
+  section.hidden = !edition;
+  if (!edition) return;
+
+  const selected = edition.items.slice(0, 3);
+  $("#daily-wall-meta").textContent = `${edition.wall_name} · ${selected.length} selected today`;
+  $("#daily-wall-list").innerHTML = selected.map((ranked) => {
+    const item = ranked.item;
+    const reason = ranked.reasons[0] || "Selected for your Wall";
+    const summary = ranked.analysis || item.summary || "No summary supplied by this source.";
+    return `<article class="daily-wall-item"><p class="eyebrow">${escapeHTML(item.source)}</p><h3><a href="${escapeHTML(item.url)}" target="_blank" rel="noreferrer">${escapeHTML(item.title)} <span aria-hidden="true">↗</span></a></h3><p class="daily-wall-summary">${escapeHTML(summary)}</p><p class="daily-wall-reason"><span>Why now</span>${escapeHTML(reason)}</p></article>`;
+  }).join("");
+}
+
 function renderReview() {
   const openTasks = state.tasks.filter((task) => !task.done);
   const drafts = state.drafts.filter((draft) => draft.status === "draft");
@@ -94,12 +110,14 @@ function renderDrafts() {
 
 async function loadWorkspace() {
   try {
-    [state.entries, state.tasks, state.drafts, state.refresh] = await Promise.all([
+    [state.entries, state.tasks, state.drafts, state.refresh, state.edition] = await Promise.all([
       request("/api/reading/entries"),
       request("/api/reading/tasks"),
       request("/api/reading/drafts"),
       request("/api/reading/refresh-status"),
+      request("/api/edition"),
     ]);
+    renderDailyWall();
     renderFocus();
     renderReview();
     renderEntries();

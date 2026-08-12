@@ -5,7 +5,7 @@ from typing import Any
 
 import httpx
 
-USER_AGENT = "Wall/0.12 (+https://github.com/adaline-ankit/wall)"
+USER_AGENT = "Wall/0.13 (+https://github.com/adaline-ankit/wall)"
 
 
 def get(url: str, *, github: bool = False) -> httpx.Response:

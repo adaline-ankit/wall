@@ -64,6 +64,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .notice { min-height: 1.75rem; padding-top: var(--space-3); color: var(--moss); font: .72rem/1.4 var(--mono); }
 .notice.is-error { color: var(--clay); }
 
+.daily-wall { padding: var(--space-10) 0 var(--space-12); border-bottom: 1px solid var(--ink); }
+.daily-wall-heading { margin-bottom: var(--space-8); }
+.daily-wall-heading h2 { max-width: 45rem; margin: var(--space-2) 0 0; font: 760 clamp(2.3rem, 5vw, 4.3rem)/.94 var(--sans); letter-spacing: -.07em; }
+.daily-wall-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--ink); }
+.daily-wall-item { min-height: 16rem; padding: var(--space-6); border-bottom: 1px solid var(--line); }
+.daily-wall-item:not(:last-child) { border-right: 1px solid var(--line); }
+.daily-wall-item h3 { margin: var(--space-4) 0; font: 700 clamp(1.25rem, 2vw, 1.8rem)/1.08 var(--sans); letter-spacing: -.05em; }
+.daily-wall-item h3 a { text-decoration-color: transparent; text-underline-offset: .2em; }
+.daily-wall-item h3 a:hover { color: var(--clay); text-decoration-color: currentColor; }
+.daily-wall-summary { display: -webkit-box; margin: 0; overflow: hidden; color: #515950; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.daily-wall-reason { margin: var(--space-5) 0 0; color: var(--moss); font: .72rem/1.45 var(--sans); }
+.daily-wall-reason span { display: block; margin-bottom: var(--space-1); color: var(--subtle); font: .6rem/1.25 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+
 .overview-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(19rem, .65fr); border-bottom: 1px solid var(--ink); }
 .panel { min-height: 29rem; padding: var(--space-10) 0 var(--space-8); }
 .panel-focus { padding-right: var(--space-10); border-right: 1px solid var(--line); }
@@ -216,6 +229,8 @@ dialog::backdrop { background: rgb(22 29 23 / 74%); backdrop-filter: blur(3px); 
   .library-ask { grid-template-columns: 1fr; gap: var(--space-6); }
   .library-answer { grid-column: auto; }
   .library-answer.is-populated { margin-top: 0; }
+  .daily-wall-list { grid-template-columns: 1fr; }
+  .daily-wall-item:not(:last-child) { border-right: 0; }
   .focus-row { grid-template-columns: 2.25rem 1fr 1rem; }
   .focus-row em { display: none; }
   .entry-list, .draft-list { grid-template-columns: 1fr; }

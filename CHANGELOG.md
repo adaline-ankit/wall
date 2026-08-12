@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.13.0 — 2026-08-12
+
+- Add **Today's Wall** to Margin: the latest local Wall edition now appears as a compact daily
+  brief with its selected items, relevance reason, analysis, and original sources.
+- Reuse the existing owner-only edition data and scheduled/manual refresh flow; viewing the brief
+  never invokes an LLM or sends new data to a provider.
+
 ## 0.12.0 — 2026-08-12
 
 - Surface Margin's existing read state: filter finished material, mark an entry as read, and keep
