@@ -1,8 +1,9 @@
 # Architecture
 
 Wall's core is a synchronous pipeline with narrow boundaries. That is intentional: the MVP is
-easy to run, test, and embed. Async fetching and job orchestration can arrive without changing the
-data contracts.
+easy to run, test, and embed. Independent sources are fetched concurrently in a bounded worker pool
+so one slow feed does not serially delay every other source; results are consumed in WallSpec order.
+Async job orchestration can arrive without changing the data contracts.
 
 ```text
 WallSpec ──► source plugins ──► Item[] ──► lexical/semantic cluster ──► deterministic rank
@@ -19,7 +20,8 @@ WallSpec ──► source plugins ──► Item[] ──► lexical/semantic cl
 ## Contracts
 
 - `WallSpec` is the user-owned, versioned declaration. Pydantic validates it at the edge.
-- `Source.fetch(SourceSpec) -> list[Item]` is the discovery plugin interface.
+- `Source.fetch(SourceSpec) -> list[Item]` is the discovery plugin interface. Independent calls
+  may run concurrently, so plugin implementations must not mutate unsynchronized shared state.
 - `Analyzer.analyze(Item, WallSpec) -> str` is the LLM boundary.
 - `Embedder.embed(list[str]) -> list[list[float]]` is an optional pre-ranking semantic-clustering
   boundary. It is disabled by default and independently configurable from analysis.

@@ -12,9 +12,7 @@ from wall_harness.models import WallSpec
 class LibraryAssistant(Protocol):
     """Optional answer boundary for source-selected private library material."""
 
-    def answer(
-        self, question: str, sources: list[dict[str, object]], spec: WallSpec
-    ) -> str: ...
+    def answer(self, question: str, sources: list[dict[str, object]], spec: WallSpec) -> str: ...
 
     def draft_starter(
         self, title: str, intent: str, sources: list[dict[str, object]], spec: WallSpec
@@ -32,9 +30,7 @@ def _evidence(sources: list[dict[str, object]]) -> str:
     for index, source in enumerate(sources, start=1):
         notes = _records(source.get("notes"))
         highlights = _records(source.get("highlights"))
-        note_text = "\n".join(
-            str(note.get("body", "")) for note in notes
-        )
+        note_text = "\n".join(str(note.get("body", "")) for note in notes)
         highlight_text = "\n".join(
             " · ".join(
                 value
@@ -57,9 +53,7 @@ def _evidence(sources: list[dict[str, object]]) -> str:
     return "\n\n".join(blocks)
 
 
-def prompt_for_library(
-    question: str, sources: list[dict[str, object]], spec: WallSpec
-) -> str:
+def prompt_for_library(question: str, sources: list[dict[str, object]], spec: WallSpec) -> str:
     return f"""You are helping with a private, source-backed reading library named {spec.name!r}.
 Answer this question: {question}
 
@@ -77,7 +71,7 @@ def prompt_for_draft_starter(
 ) -> str:
     return f"""You are helping write a private draft in the source-backed reading library {spec.name!r}.
 Draft title: {title}
-Writer's intended angle: {intent or 'Not supplied; leave an explicit placeholder.'}
+Writer's intended angle: {intent or "Not supplied; leave an explicit placeholder."}
 
 Create a concise, editable starter: a possible opening, a three-part structure, and questions the
 writer should resolve. Use only the numbered material below. Cite each factual claim with [Source N].
@@ -104,11 +98,7 @@ def local_library_answer(question: str, sources: list[dict[str, object]]) -> str
         notes = _records(source.get("notes"))
         highlights = _records(source.get("highlights"))
         private_margin = [
-            *[
-                str(note.get("body", ""))
-                for note in notes
-                if note.get("body")
-            ],
+            *[str(note.get("body", "")) for note in notes if note.get("body")],
             *[
                 " · ".join(
                     value
@@ -140,7 +130,9 @@ def local_draft_starter(title: str, intent: str, sources: list[dict[str, object]
             quote = str(highlight.get("quote", ""))
             highlight_note = str(highlight.get("note", ""))
             if quote or highlight_note:
-                private_margin.append(f"- {quote}{f' — {highlight_note}' if highlight_note else ''}")
+                private_margin.append(
+                    f"- {quote}{f' — {highlight_note}' if highlight_note else ''}"
+                )
     return "\n".join(
         [
             f"# {title}",
@@ -181,7 +173,9 @@ class OpenAILibraryAssistant:
             headers={"Authorization": f"Bearer {self.api_key}"},
             json={
                 "model": self.model,
-                "messages": [{"role": "user", "content": prompt_for_library(question, sources, spec)}],
+                "messages": [
+                    {"role": "user", "content": prompt_for_library(question, sources, spec)}
+                ],
             },
             timeout=60,
         )
@@ -197,7 +191,10 @@ class OpenAILibraryAssistant:
             json={
                 "model": self.model,
                 "messages": [
-                    {"role": "user", "content": prompt_for_draft_starter(title, intent, sources, spec)}
+                    {
+                        "role": "user",
+                        "content": prompt_for_draft_starter(title, intent, sources, spec),
+                    }
                 ],
             },
             timeout=60,
@@ -219,7 +216,9 @@ class AnthropicLibraryAssistant:
             json={
                 "model": self.model,
                 "max_tokens": 600,
-                "messages": [{"role": "user", "content": prompt_for_library(question, sources, spec)}],
+                "messages": [
+                    {"role": "user", "content": prompt_for_library(question, sources, spec)}
+                ],
             },
             timeout=60,
         )
@@ -236,7 +235,10 @@ class AnthropicLibraryAssistant:
                 "model": self.model,
                 "max_tokens": 900,
                 "messages": [
-                    {"role": "user", "content": prompt_for_draft_starter(title, intent, sources, spec)}
+                    {
+                        "role": "user",
+                        "content": prompt_for_draft_starter(title, intent, sources, spec),
+                    }
                 ],
             },
             timeout=60,

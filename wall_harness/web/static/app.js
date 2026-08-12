@@ -254,6 +254,25 @@ async function importLatestWall() {
   }
 }
 
+async function refreshWall() {
+  const button = $("#refresh-wall");
+  button.disabled = true;
+  button.textContent = "Refreshing…";
+  try {
+    const result = await request("/api/reading/refresh", { method: "POST", body: JSON.stringify({ use_llm: false }) });
+    await loadWorkspace();
+    const sourceLabel = `${result.item_count} selected ${result.item_count === 1 ? "item" : "items"}`;
+    showNotice(result.imported_count
+      ? `Refreshed ${result.wall_name}: ${sourceLabel}, ${result.imported_count} new to your inbox.`
+      : `Refreshed ${result.wall_name}: ${sourceLabel}, nothing new to add.`);
+  } catch (error) {
+    showNotice(error.message, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Refresh sources";
+  }
+}
+
 function renderLibraryAnswer(result) {
   const answer = escapeHTML(result.answer).replace(/\n/g, "<br>");
   const sourceCards = result.sources.length
@@ -284,6 +303,7 @@ $("#hero-capture").addEventListener("click", () => openDialog("#capture-dialog")
 $("#capture-form").addEventListener("submit", saveCapture);
 $("#new-draft").addEventListener("click", () => openDraft());
 $("#import-wall").addEventListener("click", importLatestWall);
+$("#refresh-wall").addEventListener("click", refreshWall);
 $("#library-ask-form").addEventListener("submit", askLibrary);
 $("#draft-form").addEventListener("submit", saveDraft);
 $("#publish-draft").addEventListener("click", publishDraft);

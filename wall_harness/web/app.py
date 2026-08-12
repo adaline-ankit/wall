@@ -54,6 +54,19 @@ class RunRequest(BaseModel):
     wall: str | None = None
 
 
+class ReadingRefreshRequest(BaseModel):
+    """Explicitly opt in to provider analysis while refreshing the reading inbox."""
+
+    use_llm: bool = False
+    wall: str | None = None
+
+
+class ReadingRefreshResponse(BaseModel):
+    wall_name: str
+    item_count: int
+    imported_count: int
+
+
 class SpecUpdate(BaseModel):
     yaml: str = Field(max_length=1_000_000)
 
@@ -160,6 +173,30 @@ def create_app(
         identifier = sha256(wall_name.encode()).hexdigest()[:12]
         return state_path.parent / f"latest-{identifier}.json"
 
+    def persist_latest(edition: WallEdition) -> None:
+        atomic_write_text(
+            latest_path(edition.wall_name),
+            json.dumps(edition.model_dump(mode="json"), indent=2),
+        )
+
+    def import_edition(edition: WallEdition) -> int:
+        imported_count = 0
+        with ReadingStore(reading_path) as store:
+            for ranked in edition.items:
+                item = ranked.item
+                entry = store.create_entry_if_new(
+                    ReadingEntryCreate(
+                        title=item.title,
+                        url=item.url,
+                        source=item.source,
+                        summary=ranked.analysis or item.summary,
+                        tags=[*item.tags, f"wall:{edition.wall_name}"],
+                        origin="wall",
+                    )
+                )
+                imported_count += int(entry is not None)
+        return imported_count
+
     @app.get("/", response_class=HTMLResponse)
     def dashboard() -> HTMLResponse:
         return HTMLResponse(template_path.read_text(encoding="utf-8"))
@@ -202,22 +239,29 @@ def create_app(
             edition = WallEdition.model_validate_json(edition_path.read_text(encoding="utf-8"))
         except (OSError, ValidationError) as exc:
             raise HTTPException(status_code=500, detail="Latest edition is unreadable") from exc
-        imported_count = 0
-        with ReadingStore(reading_path) as store:
-            for ranked in edition.items:
-                item = ranked.item
-                entry = store.create_entry_if_new(
-                    ReadingEntryCreate(
-                        title=item.title,
-                        url=item.url,
-                        source=item.source,
-                        summary=ranked.analysis or item.summary,
-                        tags=[*item.tags, f"wall:{edition.wall_name}"],
-                        origin="wall",
-                    )
-                )
-                imported_count += int(entry is not None)
-        return {"imported_count": imported_count}
+        return {"imported_count": import_edition(edition)}
+
+    @app.post("/api/reading/refresh", response_model=ReadingRefreshResponse, status_code=201)
+    def refresh_reading_inbox(request: ReadingRefreshRequest) -> ReadingRefreshResponse:
+        """Build the selected Wall and add only its new signal to Margin's inbox."""
+
+        spec = select(request.wall).spec
+        try:
+            pipeline = make_pipeline(spec)
+            edition = pipeline.run(use_llm=request.use_llm)
+            pipeline.write(edition)
+        except Exception as exc:
+            logger.error("Reading refresh failed (%s)", type(exc).__name__)
+            raise HTTPException(
+                status_code=502,
+                detail="Source refresh failed. Check the server logs for details.",
+            ) from exc
+        persist_latest(edition)
+        return ReadingRefreshResponse(
+            wall_name=edition.wall_name,
+            item_count=len(edition.items),
+            imported_count=import_edition(edition),
+        )
 
     @app.get("/api/reading/entries/{entry_id}")
     def get_reading_entry(entry_id: str) -> dict[str, object]:
@@ -498,11 +542,7 @@ def create_app(
                 status_code=502,
                 detail="Wall build failed. Check the server logs for details.",
             ) from exc
-        edition_path = latest_path(spec.name)
-        atomic_write_text(
-            edition_path,
-            json.dumps(edition.model_dump(mode="json"), indent=2),
-        )
+        persist_latest(edition)
         return edition
 
     @app.get("/api/edition", response_model=WallEdition | None)

@@ -31,6 +31,8 @@ It is deliberately not another feed reader: save what matters, add a margin note
 write from connected source cards, and publish only the finished draft.
 
 - One private inbox for manual saves, browser-save webhooks, forwarded-email webhooks, and Wall/RSS discoveries.
+- **Refresh sources** runs the selected Wall from Margin and imports only its newly selected items; it
+  uses local ranking by default and does not trigger delivery targets.
 - Notes, highlights, tasks, and drafts connected to the reading item that created them.
 - A weekly review that surfaces unfinished tasks and private drafts.
 - Source-linked drafts and a separate public-post route that never includes private working notes.
@@ -232,7 +234,7 @@ This is portable, provider-neutral sync: place the encrypted `.wall-sync` file i
 trust. The passphrase and plaintext never leave the local command.
 
 Run Wall from cron, launchd, systemd, or GitHub Actions. The `delivery.schedule` field is
-documentary in v0.2; Wall intentionally does not install background jobs on your machine.
+documentary in v0.3; Wall intentionally does not install background jobs on your machine.
 
 ## Philosophy
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
@@ -15,6 +16,8 @@ from .ranking import rank_items
 from .renderers import render_html, render_markdown
 from .sources import Source, source_registry
 from .state import KnowledgeState
+
+MAX_CONCURRENT_SOURCES = 8
 
 
 class WallPipeline:
@@ -37,15 +40,24 @@ class WallPipeline:
     def discover(self) -> list[Item]:
         items: list[Item] = []
         failures: list[str] = []
+        fetches: list[tuple[SourceSpec, Source]] = []
         for source_spec in self.spec.sources:
             source = self.sources.get(source_spec.type)
             if source is None:
                 failures.append(f"unknown source type {source_spec.type!r}")
                 continue
-            try:
-                items.extend(source.fetch(source_spec))
-            except Exception as exc:
-                failures.append(f"{source_label(source_spec)}: {failure_reason(exc)}")
+            fetches.append((source_spec, source))
+
+        # Source discovery is independent. Fetch in parallel so one slow external feed does not
+        # make a reader wait through every other source timeout; consume results in spec order so
+        # editions stay deterministic.
+        with ThreadPoolExecutor(max_workers=min(MAX_CONCURRENT_SOURCES, len(fetches) or 1)) as pool:
+            futures = [pool.submit(source.fetch, source_spec) for source_spec, source in fetches]
+            for (source_spec, _), future in zip(fetches, futures, strict=True):
+                try:
+                    items.extend(future.result())
+                except Exception as exc:
+                    failures.append(f"{source_label(source_spec)}: {failure_reason(exc)}")
         if not items and failures:
             raise RuntimeError("All sources failed: " + "; ".join(failures))
         self.source_failures = failures

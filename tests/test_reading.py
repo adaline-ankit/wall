@@ -248,7 +248,10 @@ def test_library_assistant_configuration_failures_do_not_leak_details(
     answer = client.post("/api/reading/ask", json={"question": "What did I save?"})
 
     assert answer.status_code == 502
-    assert answer.json()["detail"] == "Library assistant is unavailable. Your saved material remains local."
+    assert (
+        answer.json()["detail"]
+        == "Library assistant is unavailable. Your saved material remains local."
+    )
 
 
 def test_source_linked_draft_starter_is_reviewable_before_saving(tmp_path: Path) -> None:
@@ -292,9 +295,7 @@ def test_published_posts_are_public_while_the_workspace_stays_private(
     write_spec(spec_path)
     monkeypatch.setenv("WALL_APP_PASSWORD", "private-service-password")
     client = TestClient(create_app(spec_path, state_path=tmp_path / ".wall" / "state.db"))
-    headers = {
-        "Authorization": f"Basic {b64encode(b'margin:private-service-password').decode()}"
-    }
+    headers = {"Authorization": f"Basic {b64encode(b'margin:private-service-password').decode()}"}
     entry = client.post(
         "/api/reading/entries",
         headers=headers,
@@ -308,7 +309,11 @@ def test_published_posts_are_public_while_the_workspace_stays_private(
     draft = client.post(
         "/api/reading/drafts",
         headers=headers,
-        json={"title": "A public thought", "body": "Only this is public.", "entry_ids": [entry["id"]]},
+        json={
+            "title": "A public thought",
+            "body": "Only this is public.",
+            "entry_ids": [entry["id"]],
+        },
     ).json()
     published = client.post(f"/api/reading/drafts/{draft['id']}/publish", headers=headers).json()
 

@@ -1,4 +1,5 @@
 from pathlib import Path
+from threading import Barrier
 
 from wall_harness.models import Item, SourceSpec, Topic, WallSpec
 from wall_harness.pipeline import WallPipeline
@@ -59,6 +60,33 @@ def test_partial_source_failure_does_not_erase_success(tmp_path: Path) -> None:
         analyzer=NoopAnalyzer(),
     )
     assert len(pipeline.discover()) == 1
+
+
+def test_pipeline_fetches_independent_sources_concurrently(tmp_path: Path) -> None:
+    barrier = Barrier(2)
+
+    class BarrierSource:
+        def fetch(self, spec: SourceSpec) -> list[Item]:
+            barrier.wait(timeout=0.25)
+            return FakeSource().fetch(spec)
+
+    spec = WallSpec(
+        name="systems",
+        goal="learn systems",
+        topics=[Topic(name="consensus")],
+        sources=[
+            SourceSpec(type="barrier", url="https://example.com/one"),
+            SourceSpec(type="barrier", url="https://example.com/two"),
+        ],
+    )
+    pipeline = WallPipeline(
+        spec,
+        state_path=tmp_path / "state.db",
+        sources={"barrier": BarrierSource()},
+        analyzer=NoopAnalyzer(),
+    )
+
+    assert len(pipeline.discover()) == 2
 
 
 def test_pipeline_reports_source_failures_without_losing_results(tmp_path: Path) -> None:

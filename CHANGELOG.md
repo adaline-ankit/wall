@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — 2026-08-12
+
+- Add **Refresh sources** to Margin: build the selected Wall, retain the latest edition, and import
+  only new selected items into the private reading inbox.
+- Fetch independent sources concurrently with a bounded worker pool while preserving WallSpec order
+  in the resulting edition, so slow sources do not serially delay the full refresh.
+- Keep refresh local by default: provider analysis is opt-in and a reading refresh never triggers
+  configured delivery targets.
+
 ## 0.2.0 — 2026-08-11
 
 - Add an interactive, responsive local dashboard with live builds and validated WallSpec editing.

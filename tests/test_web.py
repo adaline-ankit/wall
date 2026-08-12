@@ -198,3 +198,18 @@ def test_wall_edition_can_be_added_to_the_reading_inbox_without_duplicates(tmp_p
     entries = client.get("/api/reading/entries").json()
     assert len(entries) == 1
     assert entries[0]["origin"] == "wall"
+
+
+def test_refreshing_sources_builds_and_imports_new_wall_items(tmp_path: Path) -> None:
+    client, _ = make_client(tmp_path)
+
+    refreshed = client.post("/api/reading/refresh", json={"use_llm": False})
+
+    assert refreshed.status_code == 201
+    assert refreshed.json() == {
+        "wall_name": "frontier-test",
+        "item_count": 1,
+        "imported_count": 1,
+    }
+    assert client.get("/api/edition").json()["wall_name"] == "frontier-test"
+    assert client.get("/api/reading/entries").json()[0]["origin"] == "wall"

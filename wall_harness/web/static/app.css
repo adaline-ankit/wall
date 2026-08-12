@@ -108,6 +108,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .filter:hover, .filter.is-active { border-bottom-color: var(--clay); color: var(--ink); }
 .import-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-5); padding: var(--space-4) 0; }
 .import-row p { margin: 0; color: var(--subtle); font-size: .9rem; }
+.import-actions { display: flex; align-items: center; gap: var(--space-4); flex: none; }
 .entry-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--ink); }
 .entry-card { display: flex; min-height: 17rem; flex-direction: column; justify-content: space-between; padding: var(--space-6); border-bottom: 1px solid var(--line); background: transparent; transition: background .15s ease; }
 .entry-card:nth-child(odd) { border-right: 1px solid var(--line); }
@@ -222,6 +223,7 @@ dialog::backdrop { background: rgb(22 29 23 / 74%); backdrop-filter: blur(3px); 
   .source-picker label:nth-child(odd) { border-right: 0; }
   .section-heading { align-items: start; flex-direction: column; }
   .import-row { align-items: start; flex-direction: column; }
+  .import-actions { align-items: start; flex-direction: column; gap: var(--space-3); }
   .library-ask-actions { align-items: start; flex-direction: column; }
   .filter-group { width: 100%; overflow-x: auto; }
   .footer { flex-direction: column; }
