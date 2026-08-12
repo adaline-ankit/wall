@@ -14,6 +14,8 @@ def test_daily_refresh_workflow_is_opt_in_and_uses_scoped_credentials() -> None:
     assert "WALL_APP_PASSWORD" not in workflow
     assert "Authorization: Bearer" in workflow
     assert "--retry" in workflow
+    assert "--retry-max-time 180" in workflow
+    assert "timeout-minutes: 4" in workflow
     assert "Check scoped scheduler configuration" in workflow
     assert "needs.configuration.outputs.enabled" in workflow
 

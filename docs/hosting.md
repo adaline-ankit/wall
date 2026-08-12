@@ -93,7 +93,8 @@ variables → Actions**, create:
   environment.
 
 The workflow skips cleanly until both values exist, uses only the scoped token, retries a sleeping
-free-tier service, and always sends `use_llm:false`.
+free-tier service for at most three minutes, and always sends `use_llm:false`. A failed run is a
+visible indication that one or more sources need attention; it will not silently retry forever.
 
 ## Health check
 
