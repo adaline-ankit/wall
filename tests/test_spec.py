@@ -12,7 +12,7 @@ def test_loads_example_spec() -> None:
     spec = load_spec(Path("examples/frontier-ai.yaml"))
     assert spec.name == "frontier-ai"
     assert spec.learning.depth == "deep-dive"
-    assert len(spec.sources) == 5
+    assert len(spec.sources) == 6
 
 
 @pytest.mark.parametrize("name", ["frontier-ai", "distributed-systems"])

@@ -1,25 +1,32 @@
 version: 1
 name: frontier-ai
-goal: Understand meaningful changes in frontier model architecture, training, inference, and agent systems.
+goal: Stay current on the models, systems, and research that materially change frontier AI engineering.
 topics:
-  - name: frontier language models
+  - name: frontier AI models
     weight: 2.0
-    keywords: [foundation model, language model, multimodal model]
-  - name: model architecture
+    keywords: [large language model, llm, foundation model, reasoning model, multimodal model]
+  - name: model architecture and inference
     weight: 1.8
-    keywords: [mixture of experts, sparse attention, mamba, inference, scaling]
-  - name: agent engineering
+    keywords: [mixture of experts, moe, sparse attention, transformer, inference, context window, quantization]
+  - name: agents and evaluation
     weight: 1.5
-    keywords: [agents, tool use, evaluation, long horizon]
+    keywords: [agent, tool use, benchmark, evaluation, evals, long horizon]
 exclude:
   - funding round
   - prompt collection
   - beginner tutorial
+  - protein design
+  - molecular design
+  - biomedical
 sources:
   - type: rss
     name: arXiv AI
     url: https://export.arxiv.org/rss/cs.AI
     tags: [research]
+  - type: rss
+    name: arXiv Computation and Language
+    url: https://export.arxiv.org/rss/cs.CL
+    tags: [research, language]
   - type: rss
     name: Hugging Face Blog
     url: https://huggingface.co/blog/feed.xml
@@ -37,7 +44,7 @@ sources:
     url: https://api.github.com/search/repositories?q=topic%3Allm-inference&sort=updated&per_page=20
     tags: [code]
 ranking:
-  minimum_score: 0.28
+  minimum_score: 0.35
   max_items: 12
   recency_half_life_hours: 72
   novelty_weight: 0.25

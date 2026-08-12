@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.18.0 — 2026-08-12
+
+- Make an interactive Margin refresh request configured-provider analysis by default. A Wall with
+  `llm.provider: none` remains local and source-ranked; scheduled refresh tokens still cannot
+  invoke a provider.
+- Tune the bundled frontier-AI Wall toward models, inference, agents, and evals, add arXiv's
+  Computation and Language feed, and filter unrelated molecular-design coverage.
+- Label the daily brief honestly as either source-ranked or AI-analysis-enabled.
+
 ## 0.17.0 — 2026-08-12
 
 - Add an optional per-source `min_request_interval_seconds` WallSpec setting. It spaces live

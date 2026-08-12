@@ -1,4 +1,4 @@
-const state = { entries: [], tasks: [], drafts: [], refresh: null, sourceHealth: [], edition: null, filter: "all", activeEntry: null, draftStarter: "" };
+const state = { entries: [], tasks: [], drafts: [], refresh: null, sourceHealth: [], edition: null, spec: null, filter: "all", activeEntry: null, draftStarter: "" };
 
 const $ = (selector) => document.querySelector(selector);
 const escapeHTML = (value) => {
@@ -57,7 +57,10 @@ function renderDailyWall() {
   if (!edition) return;
 
   const selected = edition.items.slice(0, 3);
-  $("#daily-wall-meta").textContent = `${edition.wall_name} · ${selected.length} selected today`;
+  const analysisLabel = state.spec?.llm?.provider && state.spec.llm.provider !== "none"
+    ? "AI analysis enabled"
+    : "source-ranked";
+  $("#daily-wall-meta").textContent = `${edition.wall_name} · ${selected.length} selected today · ${analysisLabel}`;
   $("#daily-wall-list").innerHTML = selected.map((ranked) => {
     const item = ranked.item;
     const reason = ranked.reasons[0] || "Selected for your Wall";
@@ -128,13 +131,14 @@ function renderDrafts() {
 
 async function loadWorkspace() {
   try {
-    [state.entries, state.tasks, state.drafts, state.refresh, state.sourceHealth, state.edition] = await Promise.all([
+    [state.entries, state.tasks, state.drafts, state.refresh, state.sourceHealth, state.edition, state.spec] = await Promise.all([
       request("/api/reading/entries"),
       request("/api/reading/tasks"),
       request("/api/reading/drafts"),
       request("/api/reading/refresh-status"),
       request("/api/sources/health"),
       request("/api/edition"),
+      request("/api/spec"),
     ]);
     renderDailyWall();
     renderFocus();
@@ -323,7 +327,7 @@ async function refreshWall() {
   button.disabled = true;
   button.textContent = "Refreshing…";
   try {
-    const result = await request("/api/reading/refresh", { method: "POST", body: JSON.stringify({ use_llm: false }) });
+    const result = await request("/api/reading/refresh", { method: "POST", body: JSON.stringify({ use_llm: true }) });
     await loadWorkspace();
     const sourceLabel = `${result.item_count} selected ${result.item_count === 1 ? "item" : "items"}`;
     showNotice(result.imported_count

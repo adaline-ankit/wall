@@ -56,9 +56,9 @@ class RunRequest(BaseModel):
 
 
 class ReadingRefreshRequest(BaseModel):
-    """Explicitly opt in to provider analysis while refreshing the reading inbox."""
+    """Refresh the reading inbox, using the configured provider when one is available."""
 
-    use_llm: bool = False
+    use_llm: bool = True
     wall: str | None = None
     asynchronous: bool = False
 

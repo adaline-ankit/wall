@@ -124,6 +124,10 @@ AI does not publish or overwrite your notes or drafts. The Writing Studio also h
 source-backed starter: it is previewed before you insert it and labels private margin as working
 material that must be rewritten or removed before publishing.
 
+The **Refresh sources** button requests provider analysis when a provider is configured. With
+`provider: none`, the same refresh is entirely local and the daily brief labels itself
+**source-ranked** so it never implies a model wrote the result.
+
 ### Add semantic clustering (optional)
 
 Lexical content clustering is deterministic and enabled by default. To group differently worded

@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from wall_harness.models import Item, SourceSpec
 from wall_harness.pipeline import WallPipeline
 from wall_harness.providers import NoopAnalyzer
-from wall_harness.web.app import create_app
+from wall_harness.web.app import ReadingRefreshRequest, create_app
 
 
 class FakeSource:
@@ -19,6 +19,10 @@ class FakeSource:
                 source=spec.name or "fixture",
             )
         ]
+
+
+def test_interactive_refresh_requests_provider_analysis_by_default() -> None:
+    assert ReadingRefreshRequest().use_llm is True
 
 
 def write_spec(path: Path) -> None:
