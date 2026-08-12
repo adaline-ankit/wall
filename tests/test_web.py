@@ -387,7 +387,9 @@ def test_owner_can_see_latest_scheduled_refresh_but_token_cannot(
 
     empty = client.get(
         "/api/reading/refresh-status",
-        headers={"Authorization": f"Basic {b64encode(b'margin:private-service-password').decode()}"},
+        headers={
+            "Authorization": f"Basic {b64encode(b'margin:private-service-password').decode()}"
+        },
     )
     submitted = client.post(
         "/api/reading/refresh",
@@ -396,7 +398,9 @@ def test_owner_can_see_latest_scheduled_refresh_but_token_cannot(
     )
     owner_status = client.get(
         "/api/reading/refresh-status",
-        headers={"Authorization": f"Basic {b64encode(b'margin:private-service-password').decode()}"},
+        headers={
+            "Authorization": f"Basic {b64encode(b'margin:private-service-password').decode()}"
+        },
     )
     token_status = client.get(
         "/api/reading/refresh-status",

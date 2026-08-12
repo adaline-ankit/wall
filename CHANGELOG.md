@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.1 — 2026-08-12
+
+- Repair repository formatting so the dashboard release passes the enforced CI quality gate.
+
 ## 0.11.0 — 2026-08-12
 
 - Show the last scheduled refresh, its completion state, selected items, and new inbox additions in
