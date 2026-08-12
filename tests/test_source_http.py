@@ -163,3 +163,19 @@ def test_get_can_disable_local_caching(monkeypatch: pytest.MonkeyPatch, tmp_path
 
     assert calls == 2
     assert not (tmp_path / "cache").exists()
+
+
+def test_get_spaces_live_requests_to_the_same_origin(monkeypatch: pytest.MonkeyPatch) -> None:
+    waits: list[float] = []
+
+    monkeypatch.setattr("wall_harness.sources.http.REQUEST_SLOTS", {})
+    monkeypatch.setattr(
+        "wall_harness.sources.http.httpx.get", lambda *args, **kwargs: _response(200)
+    )
+    monkeypatch.setattr("wall_harness.sources.http.time.monotonic", lambda: 100.0)
+    monkeypatch.setattr("wall_harness.sources.http.time.sleep", waits.append)
+
+    get("https://example.com/one", min_request_interval_seconds=5)
+    get("https://example.com/two", min_request_interval_seconds=5)
+
+    assert waits == [5.0]

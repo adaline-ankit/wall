@@ -40,3 +40,28 @@ def test_rss_source_surfaces_http_errors(monkeypatch) -> None:  # type: ignore[n
         assert exc.response.status_code == 503
     else:
         raise AssertionError("expected an HTTP status error")
+
+
+def test_rss_source_passes_its_requested_live_request_gap(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    captured = {}
+
+    def fake_get(url, **options):  # type: ignore[no-untyped-def]
+        captured["url"] = url
+        captured.update(options)
+        return httpx.Response(
+            200,
+            content=b"<rss version='2.0'><channel /></rss>",
+            request=httpx.Request("GET", str(url)),
+        )
+
+    monkeypatch.setattr("wall_harness.sources.rss.get", fake_get)
+
+    RSSSource().fetch(
+        SourceSpec(
+            url="https://example.com/feed",
+            cache_ttl_minutes=0,
+            min_request_interval_seconds=2.5,
+        )
+    )
+
+    assert captured["min_request_interval_seconds"] == 2.5

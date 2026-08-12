@@ -163,6 +163,7 @@ sources:
     url: https://export.arxiv.org/rss/cs.AI
     tags: [research]
     cache_ttl_minutes: 30 # Set 0 to always fetch this source live.
+    min_request_interval_seconds: 1 # Add a gap between live requests to this site.
 
 ranking:
   minimum_score: 0.28

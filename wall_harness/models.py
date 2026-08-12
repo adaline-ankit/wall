@@ -19,6 +19,7 @@ class SourceSpec(BaseModel):
     name: str | None = None
     tags: list[str] = Field(default_factory=list)
     cache_ttl_minutes: int = Field(default=30, ge=0, le=1440)
+    min_request_interval_seconds: float = Field(default=0, ge=0, le=3600)
 
 
 class RankingSpec(BaseModel):

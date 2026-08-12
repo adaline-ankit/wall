@@ -16,7 +16,11 @@ def parse_time(value: str | None) -> datetime:
 
 class HackerNewsSource:
     def fetch(self, spec: SourceSpec) -> list[Item]:
-        payload = get_json(str(spec.url), cache_ttl_minutes=spec.cache_ttl_minutes)
+        payload = get_json(
+            str(spec.url),
+            cache_ttl_minutes=spec.cache_ttl_minutes,
+            min_request_interval_seconds=spec.min_request_interval_seconds,
+        )
         items: list[Item] = []
         for hit in payload.get("hits", []):
             url = hit.get("url") or hit.get("story_url")
@@ -38,7 +42,12 @@ class HackerNewsSource:
 
 class GitHubSource:
     def fetch(self, spec: SourceSpec) -> list[Item]:
-        payload = get_json(str(spec.url), github=True, cache_ttl_minutes=spec.cache_ttl_minutes)
+        payload = get_json(
+            str(spec.url),
+            github=True,
+            cache_ttl_minutes=spec.cache_ttl_minutes,
+            min_request_interval_seconds=spec.min_request_interval_seconds,
+        )
         items: list[Item] = []
         for result in payload.get("items", []):
             url = result.get("html_url")
@@ -65,7 +74,11 @@ def content_value(content: dict[str, Any], key: str, default: Any = "") -> Any:
 
 class OpenReviewSource:
     def fetch(self, spec: SourceSpec) -> list[Item]:
-        payload = get_json(str(spec.url), cache_ttl_minutes=spec.cache_ttl_minutes)
+        payload = get_json(
+            str(spec.url),
+            cache_ttl_minutes=spec.cache_ttl_minutes,
+            min_request_interval_seconds=spec.min_request_interval_seconds,
+        )
         items: list[Item] = []
         for note in payload.get("notes", []):
             note_id = note.get("id")

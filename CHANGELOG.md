@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.0 — 2026-08-12
+
+- Add an optional per-source `min_request_interval_seconds` WallSpec setting. It spaces live
+  requests to the same origin even while source discovery runs concurrently, and it also protects
+  retry attempts. Cached responses remain immediate.
+
 ## 0.16.0 — 2026-08-12
 
 - Add a local response cache for every built-in source. Each WallSpec source now has a

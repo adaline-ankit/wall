@@ -100,7 +100,7 @@ background refresh job and polls its narrow status route, so a successful workfl
 source refresh completed—not merely that the HTTP request started. A failed run is a visible
 indication that one or more sources need attention; it will not silently retry forever.
 
-### Source cache
+### Source cache and pacing
 
 Each built-in source accepts `cache_ttl_minutes` in its WallSpec entry. It defaults to 30 minutes;
 set it to `0` for a source that must always be fetched live. Cache entries contain only successful
@@ -108,12 +108,17 @@ response bodies and a small amount of response metadata, use a SHA-256 URL key, 
 5 MB per response. Hosted Margin places them beneath the mounted data directory by default. Set
 `WALL_HTTP_CACHE_DIR` only when you want an alternate local cache location.
 
+Set `min_request_interval_seconds` when a source asks for a gap between live requests. Wall spaces
+requests to the same origin, including concurrent source refreshes and retries. Cached responses
+do not wait.
+
 ```yaml
 sources:
   - type: rss
     name: arXiv AI
     url: https://export.arxiv.org/rss/cs.AI
     cache_ttl_minutes: 30
+    min_request_interval_seconds: 1
 ```
 
 ### Capture links from Telegram

@@ -9,18 +9,28 @@ from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from hashlib import sha256
 from pathlib import Path
+from threading import Lock
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 
-USER_AGENT = "Wall/0.16 (+https://github.com/adaline-ankit/wall)"
+USER_AGENT = "Wall/0.17 (+https://github.com/adaline-ankit/wall)"
 MAX_ATTEMPTS = 3
 MAX_RETRY_DELAY_SECONDS = 30.0
 RETRYABLE_STATUS_CODES = {408, 429, 500, 502, 503, 504}
 MAX_CACHE_BODY_BYTES = 5_000_000
+REQUEST_SLOTS: dict[str, float] = {}
+REQUEST_SLOT_LOCK = Lock()
 
 
-def get(url: str, *, github: bool = False, cache_ttl_minutes: int = 0) -> httpx.Response:
+def get(
+    url: str,
+    *,
+    github: bool = False,
+    cache_ttl_minutes: int = 0,
+    min_request_interval_seconds: float = 0,
+) -> httpx.Response:
     if cached := load_cached_response(url, cache_ttl_minutes):
         return cached
     headers = {
@@ -33,6 +43,7 @@ def get(url: str, *, github: bool = False, cache_ttl_minutes: int = 0) -> httpx.
         headers["X-GitHub-Api-Version"] = "2022-11-28"
     for attempt in range(MAX_ATTEMPTS):
         try:
+            wait_for_request_slot(url, min_request_interval_seconds)
             response = httpx.get(url, headers=headers, timeout=20, follow_redirects=True)
         except httpx.TransportError:
             if attempt == MAX_ATTEMPTS - 1:
@@ -72,11 +83,40 @@ def retry_delay(response: httpx.Response, attempt: int) -> float:
     return exponential_delay(attempt)
 
 
-def get_json(url: str, *, github: bool = False, cache_ttl_minutes: int = 0) -> dict[str, Any]:
-    payload = get(url, github=github, cache_ttl_minutes=cache_ttl_minutes).json()
+def get_json(
+    url: str,
+    *,
+    github: bool = False,
+    cache_ttl_minutes: int = 0,
+    min_request_interval_seconds: float = 0,
+) -> dict[str, Any]:
+    payload = get(
+        url,
+        github=github,
+        cache_ttl_minutes=cache_ttl_minutes,
+        min_request_interval_seconds=min_request_interval_seconds,
+    ).json()
     if not isinstance(payload, dict):
         raise ValueError(f"Expected a JSON object from {url}")
     return payload
+
+
+def wait_for_request_slot(url: str, min_request_interval_seconds: float) -> None:
+    if min_request_interval_seconds <= 0:
+        return
+    origin = request_origin(url)
+    with REQUEST_SLOT_LOCK:
+        now = time.monotonic()
+        next_allowed = REQUEST_SLOTS.get(origin, now)
+        delay = max(0.0, next_allowed - now)
+        REQUEST_SLOTS[origin] = max(now, next_allowed) + min_request_interval_seconds
+    if delay:
+        time.sleep(delay)
+
+
+def request_origin(url: str) -> str:
+    parsed = urlsplit(url)
+    return f"{parsed.scheme.lower()}://{parsed.hostname or ''}:{parsed.port or ''}"
 
 
 def cache_path(url: str) -> Path:
