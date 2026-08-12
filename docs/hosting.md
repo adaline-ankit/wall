@@ -22,6 +22,18 @@ Margin password so you can share a post from your own domain. Everything else—
 notes, tasks, drafts, exports, and APIs—remains behind the password. Only publish a draft when its
 body and linked source cards are safe to share; raw margin notes are never rendered on this route.
 
+## Deploy to Render
+
+The repository includes a production [`render.yaml`](../render.yaml) Blueprint. It deploys the
+Docker image in Singapore and mounts a 1 GB persistent disk at `/var/data`, where Margin keeps its
+SQLite workspace and initial WallSpec. The service uses Render's paid `starter` plan because a
+free service has an ephemeral filesystem and would lose the reading library on restart or deploy.
+
+On first boot, Margin copies the bundled frontier-AI example to the disk as `wall.yaml`, so the
+private library is ready for an AI-reading workflow immediately. Future deploys preserve the
+mounted data. Render generates `WALL_APP_PASSWORD` as a secret and checks `/healthz` during
+deploys.
+
 ## Data and backups
 
 - Workspace data is persisted in `data/.wall/reading.db`.

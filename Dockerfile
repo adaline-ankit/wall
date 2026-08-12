@@ -6,7 +6,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 COPY pyproject.toml README.md LICENSE ./
 COPY wall_harness ./wall_harness
-RUN pip install --no-cache-dir .
+COPY scripts/start-margin.sh ./scripts/start-margin.sh
+RUN chmod 755 ./scripts/start-margin.sh && pip install --no-cache-dir .
 
 EXPOSE 8765
-CMD ["wall", "serve", "/data/wall.yaml", "--host", "0.0.0.0", "--port", "8765", "--allow-network"]
+CMD ["/app/scripts/start-margin.sh"]
