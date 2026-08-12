@@ -16,6 +16,8 @@ def test_daily_refresh_workflow_is_opt_in_and_uses_scoped_credentials() -> None:
     assert "--retry" in workflow
     assert "--retry-max-time 180" in workflow
     assert "timeout-minutes: 4" in workflow
+    assert '"asynchronous":true' in workflow
+    assert "/api/reading/refreshes/$job_id" in workflow
     assert "Check scoped scheduler configuration" in workflow
     assert "needs.configuration.outputs.enabled" in workflow
 

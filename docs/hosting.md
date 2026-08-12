@@ -93,8 +93,10 @@ variables → Actions**, create:
   environment.
 
 The workflow skips cleanly until both values exist, uses only the scoped token, retries a sleeping
-free-tier service for at most three minutes, and always sends `use_llm:false`. A failed run is a
-visible indication that one or more sources need attention; it will not silently retry forever.
+free-tier service for at most three minutes, and always sends `use_llm:false`. It submits a
+background refresh job and polls its narrow status route, so a successful workflow proves that the
+source refresh completed—not merely that the HTTP request started. A failed run is a visible
+indication that one or more sources need attention; it will not silently retry forever.
 
 ### Capture links from Telegram
 

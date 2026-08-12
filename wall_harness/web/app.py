@@ -14,8 +14,8 @@ from io import BytesIO
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Request, Response
-from fastapi.responses import HTMLResponse
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 from starlette.middleware.base import RequestResponseEndpoint
@@ -60,12 +60,19 @@ class ReadingRefreshRequest(BaseModel):
 
     use_llm: bool = False
     wall: str | None = None
+    asynchronous: bool = False
 
 
 class ReadingRefreshResponse(BaseModel):
     wall_name: str
     item_count: int
     imported_count: int
+
+
+class ReadingRefreshAccepted(BaseModel):
+    job_id: str
+    wall_name: str
+    status: Literal["queued"] = "queued"
 
 
 class SpecUpdate(BaseModel):
@@ -123,6 +130,7 @@ def create_app(
     }
     telegram_path = "/api/reading/captures/telegram"
     refresh_path = "/api/reading/refresh"
+    refresh_status_prefix = "/api/reading/refreshes/"
 
     def has_valid_password(request: Request) -> bool:
         if not app_password:
@@ -162,13 +170,16 @@ def create_app(
     def is_refresh_request(request: Request) -> bool:
         return request.method == "POST" and request.url.path == refresh_path
 
+    def is_refresh_status_request(request: Request) -> bool:
+        return request.method == "GET" and request.url.path.startswith(refresh_status_prefix)
+
     @app.middleware("http")
     async def password_protection(request: Request, call_next: RequestResponseEndpoint) -> Response:
         is_public_asset = request.url.path.startswith("/static/")
         is_public_post = request.url.path.startswith("/read/")
         capture_request = is_capture_request(request)
         telegram_request = request.method == "POST" and request.url.path == telegram_path
-        refresh_request = is_refresh_request(request)
+        refresh_request = is_refresh_request(request) or is_refresh_status_request(request)
         private_request = (
             request.url.path != "/healthz" and not is_public_asset and not is_public_post
         )
@@ -313,32 +324,66 @@ def create_app(
             raise HTTPException(status_code=500, detail="Latest edition is unreadable") from exc
         return {"imported_count": import_edition(edition)}
 
-    @app.post("/api/reading/refresh", response_model=ReadingRefreshResponse, status_code=201)
-    def refresh_reading_inbox(
-        request: ReadingRefreshRequest, http_request: Request
-    ) -> ReadingRefreshResponse:
-        """Build the selected Wall and add only its new signal to Margin's inbox."""
-
-        spec = select(request.wall).spec
+    def run_reading_refresh(spec: WallSpec, *, use_llm: bool) -> ReadingRefreshResponse:
         try:
             pipeline = make_pipeline(spec)
-            # A scheduler token is intentionally unable to initiate provider calls. It can keep the
-            # inbox fresh, while LLM use remains an explicit owner action behind Basic auth.
-            use_llm = request.use_llm and not has_valid_bearer_token(http_request, refresh_token)
             edition = pipeline.run(use_llm=use_llm)
             pipeline.write(edition)
         except Exception as exc:
             logger.error("Reading refresh failed (%s)", type(exc).__name__)
-            raise HTTPException(
-                status_code=502,
-                detail="Source refresh failed. Check the server logs for details.",
-            ) from exc
+            raise
         persist_latest(edition)
         return ReadingRefreshResponse(
             wall_name=edition.wall_name,
             item_count=len(edition.items),
             imported_count=import_edition(edition),
         )
+
+    def run_refresh_job(job_id: str, spec: WallSpec, *, use_llm: bool) -> None:
+        try:
+            result = run_reading_refresh(spec, use_llm=use_llm)
+        except Exception:
+            with ReadingStore(reading_path) as store:
+                store.fail_refresh_job(job_id)
+            return
+        with ReadingStore(reading_path) as store:
+            store.complete_refresh_job(
+                job_id,
+                item_count=result.item_count,
+                imported_count=result.imported_count,
+            )
+
+    @app.post("/api/reading/refresh", response_model=ReadingRefreshResponse, status_code=201)
+    def refresh_reading_inbox(
+        request: ReadingRefreshRequest, http_request: Request, background_tasks: BackgroundTasks
+    ) -> ReadingRefreshResponse | JSONResponse:
+        """Build the selected Wall and add only its new signal to Margin's inbox."""
+
+        spec = select(request.wall).spec
+        # A scheduler token is intentionally unable to initiate provider calls. It can keep the
+        # inbox fresh, while LLM use remains an explicit owner action behind Basic auth.
+        use_llm = request.use_llm and not has_valid_bearer_token(http_request, refresh_token)
+        if request.asynchronous:
+            with ReadingStore(reading_path) as store:
+                job = store.create_refresh_job(spec.name)
+            background_tasks.add_task(run_refresh_job, str(job["id"]), spec, use_llm=use_llm)
+            accepted = ReadingRefreshAccepted(job_id=str(job["id"]), wall_name=spec.name)
+            return JSONResponse(status_code=202, content=accepted.model_dump())
+        try:
+            return run_reading_refresh(spec, use_llm=use_llm)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=502,
+                detail="Source refresh failed. Check the server logs for details.",
+            ) from exc
+
+    @app.get("/api/reading/refreshes/{job_id}")
+    def get_reading_refresh(job_id: str) -> dict[str, object]:
+        try:
+            with ReadingStore(reading_path) as store:
+                return store.get_refresh_job(job_id)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="Refresh job not found") from exc
 
     @app.get("/api/reading/entries/{entry_id}")
     def get_reading_entry(entry_id: str) -> dict[str, object]:

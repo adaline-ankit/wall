@@ -207,6 +207,17 @@ class ReadingStore:
             );
             CREATE INDEX IF NOT EXISTS idx_reading_entries_status ON reading_entries(status, created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_reading_tasks_done ON reading_tasks(done, updated_at DESC);
+            CREATE TABLE IF NOT EXISTS reading_refresh_jobs (
+                id TEXT PRIMARY KEY,
+                wall_name TEXT NOT NULL,
+                status TEXT NOT NULL,
+                item_count INTEGER,
+                imported_count INTEGER,
+                created_at TEXT NOT NULL,
+                completed_at TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_reading_refresh_jobs_created
+              ON reading_refresh_jobs(created_at DESC);
             """
         )
         self.connection.commit()
@@ -263,6 +274,45 @@ class ReadingStore:
             if existing is not None:
                 return None
         return self.create_entry(request)
+
+    def create_refresh_job(self, wall_name: str) -> dict[str, object]:
+        identifier = _identifier()
+        self.connection.execute(
+            """INSERT INTO reading_refresh_jobs (id, wall_name, status, created_at)
+            VALUES (?, ?, 'queued', ?)""",
+            (identifier, wall_name, _timestamp()),
+        )
+        self.connection.commit()
+        return self.get_refresh_job(identifier)
+
+    def complete_refresh_job(
+        self, identifier: str, *, item_count: int, imported_count: int
+    ) -> dict[str, object]:
+        self.connection.execute(
+            """UPDATE reading_refresh_jobs
+            SET status = 'completed', item_count = ?, imported_count = ?, completed_at = ?
+            WHERE id = ?""",
+            (item_count, imported_count, _timestamp(), identifier),
+        )
+        self.connection.commit()
+        return self.get_refresh_job(identifier)
+
+    def fail_refresh_job(self, identifier: str) -> dict[str, object]:
+        self.connection.execute(
+            """UPDATE reading_refresh_jobs
+            SET status = 'failed', completed_at = ? WHERE id = ?""",
+            (_timestamp(), identifier),
+        )
+        self.connection.commit()
+        return self.get_refresh_job(identifier)
+
+    def get_refresh_job(self, identifier: str) -> dict[str, object]:
+        row = self.connection.execute(
+            "SELECT * FROM reading_refresh_jobs WHERE id = ?", (identifier,)
+        ).fetchone()
+        if row is None:
+            raise KeyError("Refresh job not found")
+        return self._row(row)
 
     def list_entries(self, status: str | None = None) -> list[dict[str, object]]:
         query = "SELECT * FROM reading_entries"

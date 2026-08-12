@@ -45,7 +45,8 @@ write from connected source cards, and publish only the finished draft.
 - A narrow optional `WALL_CAPTURE_TOKEN` for browser and inbound-email connectors. It can only add
   a captured item; it cannot read the private library, notes, tasks, drafts, or exports.
 - A separate `WALL_REFRESH_TOKEN` for an external daily scheduler. It can refresh the inbox with
-  deterministic local ranking but cannot read Margin or invoke an LLM provider.
+  deterministic local ranking and poll only its own refresh-job status; it cannot read Margin or
+  invoke an LLM provider.
 - A fail-closed Telegram webhook adapter for a private bot chat, with an independent webhook secret
   and optional allowed-chat boundary.
 

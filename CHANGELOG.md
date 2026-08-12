@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0 — 2026-08-12
+
+- Add durable asynchronous refresh jobs so schedulers can submit a Wall build immediately and poll
+  completion without holding an HTTP connection through all source fetches.
+- Limit refresh-token callers to submitting and reading only refresh-job status; they still cannot
+  list the inbox, read notes, or invoke LLM providers.
+
 ## 0.8.0 — 2026-08-12
 
 - Add a fail-closed Telegram Bot webhook adapter for capturing links and message context into the

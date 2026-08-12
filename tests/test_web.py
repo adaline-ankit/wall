@@ -337,6 +337,43 @@ def test_refresh_token_can_refresh_without_reading_or_using_llm(
     assert read_attempt.headers["www-authenticate"] == 'Basic realm="Margin"'
 
 
+def test_refresh_token_can_submit_and_read_only_its_refresh_job(
+    tmp_path: Path, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    spec_path = tmp_path / "wall.yaml"
+    write_spec(spec_path)
+    monkeypatch.setenv("WALL_APP_PASSWORD", "private-service-password")
+    monkeypatch.setenv("WALL_REFRESH_TOKEN", "narrow-refresh-token")
+    client, _ = make_client(tmp_path)
+
+    submitted = client.post(
+        "/api/reading/refresh",
+        headers={"Authorization": "Bearer narrow-refresh-token"},
+        json={"use_llm": False, "asynchronous": True},
+    )
+    job_id = submitted.json()["job_id"]
+    status = client.get(
+        f"/api/reading/refreshes/{job_id}",
+        headers={"Authorization": "Bearer narrow-refresh-token"},
+    )
+    guessed = client.get(
+        "/api/reading/refreshes/not-a-real-job",
+        headers={"Authorization": "Bearer narrow-refresh-token"},
+    )
+    entries = client.get(
+        "/api/reading/entries",
+        headers={"Authorization": "Bearer narrow-refresh-token"},
+    )
+
+    assert submitted.status_code == 202
+    assert submitted.json()["status"] == "queued"
+    assert status.status_code == 200
+    assert status.json()["status"] == "completed"
+    assert status.json()["imported_count"] == 1
+    assert guessed.status_code == 404
+    assert entries.status_code == 401
+
+
 def test_wall_edition_can_be_added_to_the_reading_inbox_without_duplicates(tmp_path: Path) -> None:
     client, _ = make_client(tmp_path)
     client.post("/api/run", json={"use_llm": False})
