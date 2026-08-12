@@ -2,14 +2,10 @@ services:
   - type: web
     name: margin-reading-ankit
     runtime: docker
-    plan: starter
+    plan: free
     region: singapore
     healthCheckPath: /healthz
     autoDeploy: true
-    disk:
-      name: margin-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: WALL_DATA_DIR
         value: /var/data
