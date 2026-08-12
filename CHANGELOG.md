@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.0 — 2026-08-12
+
+- Cache lexical representations during duplicate clustering, avoiding repeated tokenization for every
+  pair of discovered items and making large real-world Wall refreshes practical for daily use.
+
 ## 0.9.1 — 2026-08-12
 
 - Ensure accepted asynchronous refreshes carry their background task into the live response, so

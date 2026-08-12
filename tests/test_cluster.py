@@ -72,3 +72,26 @@ def test_invalid_embedding_shape_fails_closed() -> None:
         assert "one vector per item" in str(exc)
     else:
         raise AssertionError("expected invalid embeddings to fail")
+
+
+def test_precomputes_lexical_representations_once_per_item(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    import wall_harness.cluster as cluster
+
+    calls = 0
+    original_tokens = cluster.tokens
+
+    def counted_tokens(text: str) -> set[str]:
+        nonlocal calls
+        calls += 1
+        return original_tokens(text)
+
+    monkeypatch.setattr(cluster, "tokens", counted_tokens)
+    items = [
+        make_item(
+            f"Research system uniquetopic{index}", f"https://example.com/{index}", "Unique summary"
+        )
+        for index in range(20)
+    ]
+
+    assert cluster.cluster_items(items, threshold=1.0) == items
+    assert calls == len(items) * 2

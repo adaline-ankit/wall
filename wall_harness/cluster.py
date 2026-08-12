@@ -43,9 +43,20 @@ def tokens(text: str) -> set[str]:
 
 
 def similarity(left: Item, right: Item) -> float:
-    left_title, right_title = tokens(left.title), tokens(right.title)
-    left_content = tokens(f"{left.title} {left.summary}")
-    right_content = tokens(f"{right.title} {right.summary}")
+    return similarity_from_token_sets(
+        tokens(left.title),
+        tokens(f"{left.title} {left.summary}"),
+        tokens(right.title),
+        tokens(f"{right.title} {right.summary}"),
+    )
+
+
+def similarity_from_token_sets(
+    left_title: set[str],
+    left_content: set[str],
+    right_title: set[str],
+    right_content: set[str],
+) -> float:
     if not left_content or not right_content:
         return 0.0
     title_jaccard = (
@@ -86,13 +97,15 @@ def cluster_items(
     if vectors is not None and len(vectors) != len(items):
         raise ValueError("Embedding provider must return one vector per item")
 
+    lexical = [(tokens(item.title), tokens(f"{item.title} {item.summary}")) for item in items]
     representatives: list[tuple[Item, int]] = []
     for item_index, item in enumerate(items):
         match = next(
             (
                 (existing, vector_index)
                 for existing, vector_index in representatives
-                if similarity(item, existing) >= threshold
+                if similarity_from_token_sets(*lexical[item_index], *lexical[vector_index])
+                >= threshold
                 or (
                     vectors is not None
                     and cosine_similarity(vectors[item_index], vectors[vector_index])
