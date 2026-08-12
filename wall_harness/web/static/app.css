@@ -126,6 +126,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .tag-list span { border: 1px solid var(--line); padding: .22rem .38rem; color: var(--subtle); font: .6rem/1 var(--mono); text-transform: uppercase; }
 .status-dot { color: var(--subtle); font: .62rem/1 var(--mono); letter-spacing: .07em; text-transform: uppercase; }
 .status-dot::before { display: inline-block; width: .45rem; height: .45rem; margin-right: .35rem; border-radius: 50%; background: var(--lemon); content: ""; }
+.status-reading::before { background: var(--clay); }
 .status-kept::before { background: var(--moss); }
 .status-archived::before { background: var(--line); }
 .studio { background: var(--ink); color: var(--surface); margin-inline: calc((100vw - min(100vw - 2rem, 90rem)) / -2); padding-inline: max(1rem, calc((100vw - min(100vw - 2rem, 90rem)) / 2)); }

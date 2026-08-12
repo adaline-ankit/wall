@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.0 — 2026-08-12
+
+- Surface Margin's existing read state: filter finished material, mark an entry as read, and keep
+  finished reading out of the active focus queue without removing it from the writing source set.
+- Expose the selected reading state with visible labels and pressed-state semantics.
+
 ## 0.11.1 — 2026-08-12
 
 - Repair repository formatting so the dashboard release passes the enforced CI quality gate.

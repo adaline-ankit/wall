@@ -86,6 +86,28 @@ def test_reading_entry_can_gather_notes_tasks_and_a_draft(tmp_path: Path) -> Non
     assert detail.json()["drafts"][0]["title"] == "What evaluation-driven agents get right"
 
 
+def test_read_entries_are_tracked_separately_from_the_active_queue(tmp_path: Path) -> None:
+    client = client_for(tmp_path)
+    entry = client.post(
+        "/api/reading/entries",
+        json={
+            "title": "A careful model evaluation",
+            "url": "https://example.com/evaluation",
+            "source": "Research Lab",
+            "origin": "manual",
+        },
+    ).json()
+
+    marked_read = client.patch(f"/api/reading/entries/{entry['id']}", json={"status": "reading"})
+    read_entries = client.get("/api/reading/entries", params={"status": "reading"})
+    page = client.get("/")
+
+    assert marked_read.status_code == 200
+    assert marked_read.json()["status"] == "reading"
+    assert [item["id"] for item in read_entries.json()] == [entry["id"]]
+    assert 'data-status="reading"' in page.text
+
+
 def test_weekly_review_and_publication_keep_private_notes_private(tmp_path: Path) -> None:
     client = client_for(tmp_path)
     entry = client.post(
