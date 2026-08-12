@@ -45,7 +45,7 @@ class MetadataParser(HTMLParser):
 
 class WebSource:
     def fetch(self, spec: SourceSpec) -> list[Item]:
-        response = get(str(spec.url))
+        response = get(str(spec.url), cache_ttl_minutes=spec.cache_ttl_minutes)
         parser = MetadataParser()
         parser.feed(response.text)
         title = " ".join(parser.title_parts) or spec.name or str(spec.url)

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.0 — 2026-08-12
+
+- Add a local response cache for every built-in source. Each WallSpec source now has a
+  `cache_ttl_minutes` setting (30 minutes by default; `0` disables caching), reducing repeated
+  downloads during routine refreshes.
+- Keep cache records local and bounded: successful response bodies of at most 5 MB are keyed by a
+  SHA-256 URL digest, written atomically, and hosted Margin keeps them on its mounted data path.
+
 ## 0.15.0 — 2026-08-12
 
 - Persist the latest health result for every configured source: success/failure, selected source

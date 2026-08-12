@@ -162,6 +162,7 @@ sources:
     name: arXiv AI
     url: https://export.arxiv.org/rss/cs.AI
     tags: [research]
+    cache_ttl_minutes: 30 # Set 0 to always fetch this source live.
 
 ranking:
   minimum_score: 0.28

@@ -2,8 +2,8 @@
 
 ## Now — solidify the local harness
 
-- ~~Per-source retries for built-in discovery~~
-- Caching and rate limits
+- ~~Per-source retries and local response caching for built-in discovery~~
+- Rate limits
 - Versioned knowledge-state migrations and repair tooling
 - Richer feed fixtures and parser diagnostics
 

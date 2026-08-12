@@ -37,6 +37,8 @@ durable later, upgrade the service and attach a persistent disk at `/var/data`.
 ## Data and backups
 
 - Workspace data is persisted in `data/.wall/reading.db`.
+- Downloaded source responses are cached in `data/.wall/http-cache` by default, with hashed
+  filenames and a per-source TTL; no source URL is stored in a cache filename.
 - Wall editions and specs remain in the same mounted `data/` directory.
 - Download a Markdown archive from the **Export** link in the UI, or request `GET /api/reading/export`.
 - Back up the whole `data/` directory while the service is stopped, or use the existing encrypted `wall sync export` workflow for Wall specs and knowledge state.
@@ -97,6 +99,22 @@ free-tier service for at most three minutes, and always sends `use_llm:false`. I
 background refresh job and polls its narrow status route, so a successful workflow proves that the
 source refresh completed—not merely that the HTTP request started. A failed run is a visible
 indication that one or more sources need attention; it will not silently retry forever.
+
+### Source cache
+
+Each built-in source accepts `cache_ttl_minutes` in its WallSpec entry. It defaults to 30 minutes;
+set it to `0` for a source that must always be fetched live. Cache entries contain only successful
+response bodies and a small amount of response metadata, use a SHA-256 URL key, and are capped at
+5 MB per response. Hosted Margin places them beneath the mounted data directory by default. Set
+`WALL_HTTP_CACHE_DIR` only when you want an alternate local cache location.
+
+```yaml
+sources:
+  - type: rss
+    name: arXiv AI
+    url: https://export.arxiv.org/rss/cs.AI
+    cache_ttl_minutes: 30
+```
 
 ### Capture links from Telegram
 

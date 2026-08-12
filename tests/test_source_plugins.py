@@ -33,7 +33,12 @@ def test_hacker_news_source_maps_search_hits(monkeypatch) -> None:  # type: igno
     )
     source = source_registry()["hackernews"]
     items = source.fetch(
-        SourceSpec(name="HN", type="hackernews", url="https://hn.algolia.com/api/v1/search")
+        SourceSpec(
+            name="HN",
+            type="hackernews",
+            url="https://hn.algolia.com/api/v1/search",
+            cache_ttl_minutes=0,
+        )
     )
     assert items[0].title == "A new database"
     assert items[0].published_at == datetime(2026, 8, 10, 12, 30, tzinfo=UTC)
@@ -58,7 +63,11 @@ def test_github_source_maps_repositories(monkeypatch) -> None:  # type: ignore[n
         ),
     )
     item = source_registry()["github"].fetch(
-        SourceSpec(type="github", url="https://api.github.com/search/repositories?q=inference")
+        SourceSpec(
+            type="github",
+            url="https://api.github.com/search/repositories?q=inference",
+            cache_ttl_minutes=0,
+        )
     )[0]
     assert item.title == "acme/engine"
     assert item.tags == ["inference"]
@@ -84,7 +93,9 @@ def test_openreview_source_unwraps_content_values(monkeypatch) -> None:  # type:
         ),
     )
     item = source_registry()["openreview"].fetch(
-        SourceSpec(type="openreview", url="https://api2.openreview.net/notes?limit=10")
+        SourceSpec(
+            type="openreview", url="https://api2.openreview.net/notes?limit=10", cache_ttl_minutes=0
+        )
     )[0]
     assert item.title == "Learning useful representations"
     assert item.url == "https://openreview.net/forum?id=note-1"
@@ -102,7 +113,9 @@ def test_web_source_extracts_readable_page_metadata(monkeypatch) -> None:  # typ
         ),
     )
     item = source_registry()["web"].fetch(
-        SourceSpec(type="web", name="Dispatch", url="https://example.com/report")
+        SourceSpec(
+            type="web", name="Dispatch", url="https://example.com/report", cache_ttl_minutes=0
+        )
     )[0]
     assert item.title == "Systems dispatch"
     assert item.summary == "A production reliability report."

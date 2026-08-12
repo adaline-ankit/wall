@@ -18,6 +18,7 @@ class SourceSpec(BaseModel):
     url: HttpUrl
     name: str | None = None
     tags: list[str] = Field(default_factory=list)
+    cache_ttl_minutes: int = Field(default=30, ge=0, le=1440)
 
 
 class RankingSpec(BaseModel):

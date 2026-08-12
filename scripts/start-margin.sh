@@ -16,6 +16,7 @@ fi
 spec_path="${WALL_SPEC_PATH:-$data_dir/wall.yaml}"
 
 mkdir -p "$data_dir"
+export WALL_HTTP_CACHE_DIR="${WALL_HTTP_CACHE_DIR:-$data_dir/.wall/http-cache}"
 if [ ! -f "$spec_path" ]; then
   cp "$app_dir/wall_harness/examples/frontier-ai.yaml" "$spec_path"
 fi

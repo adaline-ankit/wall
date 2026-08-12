@@ -96,3 +96,70 @@ def test_get_does_not_retry_a_permanent_client_error(monkeypatch: pytest.MonkeyP
 
     assert calls == 1
     assert waits == []
+
+
+def test_get_reuses_a_fresh_local_cache_entry(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    calls = 0
+
+    def fake_get(*args: object, **kwargs: object) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(
+            200,
+            content=b"cached source body",
+            headers={"Content-Type": "application/json"},
+            request=httpx.Request("GET", "https://example.com/feed?private=value"),
+        )
+
+    monkeypatch.setenv("WALL_HTTP_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr("wall_harness.sources.http.httpx.get", fake_get)
+
+    first = get("https://example.com/feed?private=value", cache_ttl_minutes=30)
+    second = get("https://example.com/feed?private=value", cache_ttl_minutes=30)
+
+    assert first.content == second.content == b"cached source body"
+    assert calls == 1
+    assert all("private" not in path.name for path in (tmp_path / "cache").iterdir())
+
+
+def test_get_refreshes_an_expired_local_cache_entry(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:  # type: ignore[no-untyped-def]
+    calls = 0
+    now = [1_000.0]
+
+    def fake_get(*args: object, **kwargs: object) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(
+            200,
+            content=f"response-{calls}".encode(),
+            request=httpx.Request("GET", "https://example.com/feed"),
+        )
+
+    monkeypatch.setenv("WALL_HTTP_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr("wall_harness.sources.http.httpx.get", fake_get)
+    monkeypatch.setattr("wall_harness.sources.http.time.time", lambda: now[0])
+
+    assert get("https://example.com/feed", cache_ttl_minutes=1).content == b"response-1"
+    now[0] += 61
+    assert get("https://example.com/feed", cache_ttl_minutes=1).content == b"response-2"
+    assert calls == 2
+
+
+def test_get_can_disable_local_caching(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    calls = 0
+
+    def fake_get(*args: object, **kwargs: object) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return _response(200)
+
+    monkeypatch.setenv("WALL_HTTP_CACHE_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr("wall_harness.sources.http.httpx.get", fake_get)
+
+    get("https://example.com/feed", cache_ttl_minutes=0)
+    get("https://example.com/feed", cache_ttl_minutes=0)
+
+    assert calls == 2
+    assert not (tmp_path / "cache").exists()

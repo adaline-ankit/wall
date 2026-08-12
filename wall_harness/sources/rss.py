@@ -12,7 +12,7 @@ from .http import get
 
 class RSSSource:
     def fetch(self, spec: SourceSpec) -> list[Item]:
-        response = get(str(spec.url))
+        response = get(str(spec.url), cache_ttl_minutes=spec.cache_ttl_minutes)
         feed = feedparser.parse(response.content)
         if getattr(feed, "bozo", False) and not feed.entries:
             raise RuntimeError(f"Could not read feed {spec.url}: {feed.bozo_exception}")
