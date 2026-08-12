@@ -13,8 +13,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  configuration:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.gate.outputs.enabled }}
+    env:
+      MARGIN_REFRESH_URL: ${{ vars.MARGIN_REFRESH_URL }}
+      MARGIN_REFRESH_TOKEN: ${{ secrets.MARGIN_REFRESH_TOKEN }}
+    steps:
+      - id: gate
+        name: Check scoped scheduler configuration
+        run: |
+          if [ -z "$MARGIN_REFRESH_URL" ] || [ -z "$MARGIN_REFRESH_TOKEN" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Daily refresh is disabled until its URL variable and scoped token secret are set."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
   refresh:
-    if: ${{ vars.MARGIN_REFRESH_URL != '' && secrets.MARGIN_REFRESH_TOKEN != '' }}
+    needs: configuration
+    if: ${{ needs.configuration.outputs.enabled == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
