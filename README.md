@@ -46,6 +46,8 @@ write from connected source cards, and publish only the finished draft.
   a captured item; it cannot read the private library, notes, tasks, drafts, or exports.
 - A separate `WALL_REFRESH_TOKEN` for an external daily scheduler. It can refresh the inbox with
   deterministic local ranking but cannot read Margin or invoke an LLM provider.
+- A fail-closed Telegram webhook adapter for a private bot chat, with an independent webhook secret
+  and optional allowed-chat boundary.
 
 Run locally with `wall serve wall.yaml`, or use the documented [private Docker deployment](docs/hosting.md).
 The browser and email capture routes are intentionally narrow HTTP contracts. For a hosted service,

@@ -15,3 +15,5 @@ services:
         generateValue: true
       - key: WALL_REFRESH_TOKEN
         generateValue: true
+      - key: WALL_TELEGRAM_SECRET_TOKEN
+        generateValue: true

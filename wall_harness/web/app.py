@@ -43,6 +43,7 @@ from .reading import (
     ReadingStore,
     TaskCreate,
     TaskUpdate,
+    TelegramCapture,
 )
 from .workspace import WallRecord, WallWorkspace
 
@@ -113,10 +114,14 @@ def create_app(
     app_password = os.getenv("WALL_APP_PASSWORD")
     capture_token = os.getenv("WALL_CAPTURE_TOKEN")
     refresh_token = os.getenv("WALL_REFRESH_TOKEN")
+    telegram_secret_token = os.getenv("WALL_TELEGRAM_SECRET_TOKEN")
+    telegram_allowed_chat_id = os.getenv("WALL_TELEGRAM_ALLOWED_CHAT_ID")
     capture_paths = {
         "/api/reading/captures/browser",
         "/api/reading/captures/email",
+        "/api/reading/captures/telegram",
     }
+    telegram_path = "/api/reading/captures/telegram"
     refresh_path = "/api/reading/refresh"
 
     def has_valid_password(request: Request) -> bool:
@@ -146,6 +151,14 @@ def create_app(
     def is_capture_request(request: Request) -> bool:
         return request.method == "POST" and request.url.path in capture_paths
 
+    def has_valid_telegram_secret(request: Request) -> bool:
+        supplied = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+        return bool(
+            telegram_secret_token
+            and supplied
+            and secrets.compare_digest(supplied, telegram_secret_token)
+        )
+
     def is_refresh_request(request: Request) -> bool:
         return request.method == "POST" and request.url.path == refresh_path
 
@@ -154,25 +167,34 @@ def create_app(
         is_public_asset = request.url.path.startswith("/static/")
         is_public_post = request.url.path.startswith("/read/")
         capture_request = is_capture_request(request)
+        telegram_request = request.method == "POST" and request.url.path == telegram_path
         refresh_request = is_refresh_request(request)
         private_request = (
             request.url.path != "/healthz" and not is_public_asset and not is_public_post
         )
         capture_authorized = capture_request and has_valid_bearer_token(request, capture_token)
+        telegram_authorized = telegram_request and has_valid_telegram_secret(request)
         refresh_authorized = refresh_request and has_valid_bearer_token(request, refresh_token)
         password_authorized = has_valid_password(request)
-        capture_token_required = capture_request and bool(capture_token)
+        capture_token_required = capture_request and bool(capture_token or telegram_secret_token)
+        telegram_secret_required = telegram_request
         refresh_token_required = refresh_request and bool(refresh_token)
         should_reject = private_request and not (
             capture_authorized
+            or telegram_authorized
             or refresh_authorized
             or password_authorized
-            or (not app_password and not capture_token_required and not refresh_token_required)
+            or (
+                not app_password
+                and not capture_token_required
+                and not refresh_token_required
+                and not telegram_secret_required
+            )
         )
         if should_reject:
             authentication_header = (
                 "Bearer"
-                if capture_token_required or refresh_token_required
+                if capture_token_required or refresh_token_required or telegram_secret_required
                 else 'Basic realm="Margin"'
             )
             return Response(
@@ -267,6 +289,17 @@ def create_app(
     def capture_forwarded_email(request: EmailCapture) -> dict[str, object]:
         with ReadingStore(reading_path) as store:
             return store.create_entry(request.as_entry())
+
+    @app.post("/api/reading/captures/telegram", status_code=201)
+    def capture_from_telegram(request: TelegramCapture) -> dict[str, object]:
+        if telegram_allowed_chat_id and request.chat_id() != telegram_allowed_chat_id:
+            raise HTTPException(status_code=403, detail="Telegram chat is not allowed")
+        try:
+            entry = request.as_entry()
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        with ReadingStore(reading_path) as store:
+            return store.create_entry(entry)
 
     @app.post("/api/reading/import/wall", status_code=201)
     def import_latest_wall(wall: str | None = None) -> dict[str, int]:

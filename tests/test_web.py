@@ -233,6 +233,64 @@ def test_capture_token_can_write_to_the_inbox_but_cannot_read_the_private_app(
     assert read_attempt.headers["www-authenticate"] == 'Basic realm="Margin"'
 
 
+def test_telegram_webhook_captures_an_allowed_message_with_a_scoped_secret(
+    tmp_path: Path, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    spec_path = tmp_path / "wall.yaml"
+    write_spec(spec_path)
+    monkeypatch.setenv("WALL_APP_PASSWORD", "private-service-password")
+    monkeypatch.setenv("WALL_TELEGRAM_SECRET_TOKEN", "telegram-hook-secret")
+    monkeypatch.setenv("WALL_TELEGRAM_ALLOWED_CHAT_ID", "12345")
+    client = TestClient(create_app(spec_path, state_path=tmp_path / ".wall" / "state.db"))
+    payload = {
+        "update_id": 1,
+        "message": {
+            "message_id": 1,
+            "chat": {"id": 12345},
+            "from": {"username": "reader"},
+            "text": "Read https://example.com/telegram-paper this paper",
+        },
+    }
+
+    rejected = client.post("/api/reading/captures/telegram", json=payload)
+    denied_chat = client.post(
+        "/api/reading/captures/telegram",
+        headers={"X-Telegram-Bot-Api-Secret-Token": "telegram-hook-secret"},
+        json={**payload, "message": {**payload["message"], "chat": {"id": 999}}},
+    )
+    captured = client.post(
+        "/api/reading/captures/telegram",
+        headers={"X-Telegram-Bot-Api-Secret-Token": "telegram-hook-secret"},
+        json=payload,
+    )
+    read_attempt = client.get(
+        "/api/reading/entries",
+        headers={"X-Telegram-Bot-Api-Secret-Token": "telegram-hook-secret"},
+    )
+
+    assert rejected.status_code == 401
+    assert rejected.headers["www-authenticate"] == "Bearer"
+    assert denied_chat.status_code == 403
+    assert captured.status_code == 201
+    assert captured.json()["origin"] == "telegram"
+    assert captured.json()["url"] == "https://example.com/telegram-paper"
+    assert read_attempt.status_code == 401
+
+
+def test_telegram_webhook_fails_closed_until_a_secret_is_configured(tmp_path: Path) -> None:
+    spec_path = tmp_path / "wall.yaml"
+    write_spec(spec_path)
+    client = TestClient(create_app(spec_path, state_path=tmp_path / ".wall" / "state.db"))
+
+    response = client.post(
+        "/api/reading/captures/telegram",
+        json={"message": {"chat": {"id": 12345}, "text": "https://example.com"}},
+    )
+
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+
+
 def test_refresh_token_can_refresh_without_reading_or_using_llm(
     tmp_path: Path, monkeypatch
 ) -> None:  # type: ignore[no-untyped-def]

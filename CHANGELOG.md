@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.8.0 — 2026-08-12
+
+- Add a fail-closed Telegram Bot webhook adapter for capturing links and message context into the
+  private Margin inbox.
+- Require a separate Telegram webhook secret, support an optional allowed-chat boundary, and keep
+  Telegram unable to read the library or use the dashboard credential.
+
+## 0.7.2 — 2026-08-12
+
+- Bound the hosted scheduler's total retry window so a failing daily refresh reports clearly rather
+  than consuming the entire job timeout.
+
+## 0.7.1 — 2026-08-12
+
+- Replace an invalid GitHub Actions secret condition with a successful, explicit configuration gate.
+
 ## 0.7.0 — 2026-08-12
 
 - Add an opt-in GitHub Actions daily refresh workflow for hosted Margin instances.

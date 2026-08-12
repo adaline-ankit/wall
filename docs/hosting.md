@@ -96,6 +96,28 @@ The workflow skips cleanly until both values exist, uses only the scoped token, 
 free-tier service for at most three minutes, and always sends `use_llm:false`. A failed run is a
 visible indication that one or more sources need attention; it will not silently retry forever.
 
+### Capture links from Telegram
+
+Margin can receive a Telegram Bot webhook at `/api/reading/captures/telegram`. It accepts only
+message text or captions, captures the first link, and saves the full message as private context.
+The route is fail-closed: set a long random `WALL_TELEGRAM_SECRET_TOKEN` before Telegram can call
+it, and set `WALL_TELEGRAM_ALLOWED_CHAT_ID` to your private chat ID so no other chat is accepted.
+The Telegram webhook secret is independent from `WALL_CAPTURE_TOKEN` and cannot read Margin.
+
+After creating a bot with BotFather, configure its webhook with the values from your service
+environment (the bot token is used only in this setup command, never stored in Wall):
+
+```bash
+curl "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" \
+  --data-urlencode "url=https://margin.example.com/api/reading/captures/telegram" \
+  --data-urlencode "secret_token=$WALL_TELEGRAM_SECRET_TOKEN"
+```
+
+Send the bot a link, then verify it appears in the Margin inbox. Forward only the bot token to
+Telegram and only the webhook secret to Margin; neither is your Margin password. WhatsApp remains
+an intentional future adapter because it requires an approved Meta business integration rather than
+an equivalent personal webhook.
+
 ## Health check
 
 `GET /healthz` returns `{"status":"ok"}` and is intentionally unauthenticated so a local container health check can use it.

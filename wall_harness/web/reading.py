@@ -30,7 +30,7 @@ class ReadingEntryCreate(BaseModel):
     source: str = Field(default="Saved link", min_length=1, max_length=200)
     summary: str = Field(default="", max_length=20_000)
     tags: list[str] = Field(default_factory=list, max_length=24)
-    origin: Literal["manual", "browser", "email", "wall", "rss"] = "manual"
+    origin: Literal["manual", "browser", "email", "telegram", "wall", "rss"] = "manual"
 
     @field_validator("url")
     @classmethod
@@ -73,6 +73,34 @@ class EmailCapture(BaseModel):
             source=f"Forwarded from {self.sender}",
             summary=self.body,
             origin="email",
+        )
+
+
+class TelegramCapture(BaseModel):
+    """Small, stable boundary around the Telegram webhook update we consume."""
+
+    message: dict[str, object]
+
+    def chat_id(self) -> str | None:
+        chat = self.message.get("chat")
+        if not isinstance(chat, dict) or chat.get("id") is None:
+            return None
+        return str(chat["id"])
+
+    def as_entry(self) -> ReadingEntryCreate:
+        text = self.message.get("text") or self.message.get("caption") or ""
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError("Telegram update has no text or caption to save")
+        sender = self.message.get("from")
+        username = sender.get("username") if isinstance(sender, dict) else None
+        sender_name = username if isinstance(username, str) and username else "Telegram"
+        match = re.search(r"https?://[^\s<>\]\[\"']+", text)
+        return ReadingEntryCreate(
+            title=text.splitlines()[0].strip()[:500],
+            url=match.group(0).rstrip(".,;:!?") if match else None,
+            source=f"Telegram · {sender_name}",
+            summary=text,
+            origin="telegram",
         )
 
 
