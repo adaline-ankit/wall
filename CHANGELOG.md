@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.1 — 2026-08-12
+
+- Ensure accepted asynchronous refreshes carry their background task into the live response, so
+  queued job records reliably execute outside the request lifecycle.
+
 ## 0.9.0 — 2026-08-12
 
 - Add durable asynchronous refresh jobs so schedulers can submit a Wall build immediately and poll

@@ -368,7 +368,11 @@ def create_app(
                 job = store.create_refresh_job(spec.name)
             background_tasks.add_task(run_refresh_job, str(job["id"]), spec, use_llm=use_llm)
             accepted = ReadingRefreshAccepted(job_id=str(job["id"]), wall_name=spec.name)
-            return JSONResponse(status_code=202, content=accepted.model_dump())
+            return JSONResponse(
+                status_code=202,
+                content=accepted.model_dump(),
+                background=background_tasks,
+            )
         try:
             return run_reading_refresh(spec, use_llm=use_llm)
         except Exception as exc:

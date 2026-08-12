@@ -367,6 +367,8 @@ def test_refresh_token_can_submit_and_read_only_its_refresh_job(
 
     assert submitted.status_code == 202
     assert submitted.json()["status"] == "queued"
+    assert status.json()["created_at"] is not None
+    assert status.json()["completed_at"] is not None
     assert status.status_code == 200
     assert status.json()["status"] == "completed"
     assert status.json()["imported_count"] == 1
