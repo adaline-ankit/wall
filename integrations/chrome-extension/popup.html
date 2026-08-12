@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Save to Margin</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">MARGIN CONNECTOR</p>
+        <h1>Save to Margin</h1>
+        <p class="intro">A private, write-only link to your reading inbox.</p>
+      </header>
+
+      <section id="setup" class="card" aria-labelledby="setup-title">
+        <div class="section-heading">
+          <h2 id="setup-title">Connection</h2>
+          <button id="edit-connection" class="text-button" type="button">Edit</button>
+        </div>
+        <label for="endpoint">Margin address</label>
+        <input id="endpoint" type="url" inputmode="url" placeholder="https://margin.example.com" autocomplete="url">
+        <label for="token">Capture token</label>
+        <input id="token" type="password" placeholder="WALL_CAPTURE_TOKEN" autocomplete="off">
+        <p class="hint">This is not your Margin password. The token can only add pages to your inbox.</p>
+        <button id="save-connection" class="button secondary" type="button">Save connection</button>
+      </section>
+
+      <section id="capture" class="card" aria-labelledby="capture-title" hidden>
+        <div class="section-heading">
+          <h2 id="capture-title">Current page</h2>
+          <span class="connected">Connected</span>
+        </div>
+        <p id="page-title" class="page-title">Finding this page…</p>
+        <p id="page-url" class="page-url"></p>
+        <label for="note">Why save it? <span>optional</span></label>
+        <textarea id="note" rows="3" maxlength="20000" placeholder="A question, context, or a reason to return"></textarea>
+        <label for="tags">Tags <span>comma-separated</span></label>
+        <input id="tags" type="text" maxlength="600" placeholder="research, to-read">
+        <button id="capture-page" class="button" type="button">Save this page</button>
+      </section>
+
+      <p id="status" class="status" aria-live="polite"></p>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -48,6 +48,8 @@ write from connected source cards, and publish only the finished draft.
 Run locally with `wall serve wall.yaml`, or use the documented [private Docker deployment](docs/hosting.md).
 The browser and email capture routes are intentionally narrow HTTP contracts. For a hosted service,
 give a browser extension or inbound-email gateway `WALL_CAPTURE_TOKEN`, not the Margin password.
+The repository includes a dependency-free [Save to Margin Chrome connector](integrations/chrome-extension)
+you can load locally today.
 
 ## What works today
 

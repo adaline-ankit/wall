@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0 — 2026-08-12
+
+- Ship **Save to Margin**, a dependency-free Manifest V3 Chrome connector that saves the current
+  page, an optional reason, and tags into the private inbox.
+- Store the connector configuration only in local extension storage, require an explicit one-site
+  permission, and accept HTTPS hosts (or loopback HTTP for local development) only.
+- Keep the connector write-only: it uses `WALL_CAPTURE_TOKEN` for the browser capture route and
+  never asks for or sends `WALL_APP_PASSWORD`.
+
 ## 0.4.0 — 2026-08-12
 
 - Add `WALL_CAPTURE_TOKEN`: a scoped Bearer credential for browser extensions and inbound-email

@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Save to Margin",
+  "description": "Save the current page to a private Margin inbox using a write-only capture token.",
+  "version": "0.5.0",
+  "action": {
+    "default_title": "Save to Margin",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["activeTab", "storage"],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ]
+}

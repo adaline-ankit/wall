@@ -59,6 +59,15 @@ curl -H "Authorization: Bearer $WALL_CAPTURE_TOKEN" \
 
 The owner can still use Basic authentication for the same endpoints. An email provider or browser extension still needs to be configured to call them; never put the Basic-auth password into a public browser extension. Rotate the capture token after a connector is lost or compromised.
 
+### Save pages from Chrome
+
+Wall includes a no-build [Save to Margin Chrome connector](../integrations/chrome-extension). Load that
+folder as an unpacked extension in `chrome://extensions`, enter the service address and
+`WALL_CAPTURE_TOKEN`, and approve its one-site permission request. It stores the token only in the
+local extension storage and sends the current tab's title, URL, optional note, and optional tags to
+the browser capture route. It never receives `WALL_APP_PASSWORD` and does not read page contents,
+cookies, or your Margin library.
+
 ## Health check
 
 `GET /healthz` returns `{"status":"ok"}` and is intentionally unauthenticated so a local container health check can use it.
