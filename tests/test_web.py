@@ -184,6 +184,55 @@ def test_configured_app_password_protects_network_service(tmp_path: Path, monkey
     assert accepted.status_code == 200
 
 
+def test_capture_token_can_write_to_the_inbox_but_cannot_read_the_private_app(
+    tmp_path: Path, monkeypatch
+) -> None:  # type: ignore[no-untyped-def]
+    spec_path = tmp_path / "wall.yaml"
+    write_spec(spec_path)
+    monkeypatch.setenv("WALL_APP_PASSWORD", "private-service-password")
+    monkeypatch.setenv("WALL_CAPTURE_TOKEN", "narrow-write-token")
+    client = TestClient(create_app(spec_path, state_path=tmp_path / ".wall" / "state.db"))
+
+    rejected = client.post(
+        "/api/reading/captures/browser",
+        json={"title": "Untrusted request", "source": "Browser"},
+    )
+    invalid = client.post(
+        "/api/reading/captures/browser",
+        headers={"Authorization": "Bearer wrong-token"},
+        json={"title": "Invalid token", "source": "Browser"},
+    )
+    captured = client.post(
+        "/api/reading/captures/browser",
+        headers={"Authorization": "Bearer narrow-write-token"},
+        json={
+            "title": "A safely captured article",
+            "url": "https://example.com/captured",
+            "source": "Browser",
+        },
+    )
+    owner_capture = client.post(
+        "/api/reading/captures/browser",
+        headers={
+            "Authorization": f"Basic {b64encode(b'margin:private-service-password').decode()}"
+        },
+        json={"title": "The owner's capture", "source": "Browser"},
+    )
+    read_attempt = client.get(
+        "/api/reading/entries",
+        headers={"Authorization": "Bearer narrow-write-token"},
+    )
+
+    assert rejected.status_code == 401
+    assert rejected.headers["www-authenticate"] == "Bearer"
+    assert invalid.status_code == 401
+    assert captured.status_code == 201
+    assert captured.json()["origin"] == "browser"
+    assert owner_capture.status_code == 201
+    assert read_attempt.status_code == 401
+    assert read_attempt.headers["www-authenticate"] == 'Basic realm="Margin"'
+
+
 def test_wall_edition_can_be_added_to_the_reading_inbox_without_duplicates(tmp_path: Path) -> None:
     client, _ = make_client(tmp_path)
     client.post("/api/run", json={"use_llm": False})

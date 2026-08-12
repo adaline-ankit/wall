@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 — 2026-08-12
+
+- Add `WALL_CAPTURE_TOKEN`: a scoped Bearer credential for browser extensions and inbound-email
+  gateways that can only create captured inbox items.
+- Keep the private Margin workspace behind `WALL_APP_PASSWORD`; a capture credential cannot list or
+  read entries, notes, tasks, drafts, exports, or Wall configuration.
+- Configure the scoped token automatically for Render Blueprints and document secure connector
+  setup, rotation, and the owner Basic-auth fallback.
+
 ## 0.3.0 — 2026-08-12
 
 - Add **Refresh sources** to Margin: build the selected Wall, retain the latest edition, and import

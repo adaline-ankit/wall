@@ -11,3 +11,5 @@ services:
         value: /var/data
       - key: WALL_APP_PASSWORD
         generateValue: true
+      - key: WALL_CAPTURE_TOKEN
+        generateValue: true

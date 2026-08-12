@@ -42,10 +42,12 @@ write from connected source cards, and publish only the finished draft.
 - **Source-backed starters**: turn selected cards and your stated angle into an editable draft
   shape, preview it, and choose whether to insert it into the editor.
 - Optional single-password protection for a private hosted service via `WALL_APP_PASSWORD`.
+- A narrow optional `WALL_CAPTURE_TOKEN` for browser and inbound-email connectors. It can only add
+  a captured item; it cannot read the private library, notes, tasks, drafts, or exports.
 
 Run locally with `wall serve wall.yaml`, or use the documented [private Docker deployment](docs/hosting.md).
-The browser and email capture routes are intentionally narrow HTTP contracts; connect your preferred
-browser extension or inbound email provider behind an authenticated proxy.
+The browser and email capture routes are intentionally narrow HTTP contracts. For a hosted service,
+give a browser extension or inbound-email gateway `WALL_CAPTURE_TOKEN`, not the Margin password.
 
 ## What works today
 
@@ -234,7 +236,7 @@ This is portable, provider-neutral sync: place the encrypted `.wall-sync` file i
 trust. The passphrase and plaintext never leave the local command.
 
 Run Wall from cron, launchd, systemd, or GitHub Actions. The `delivery.schedule` field is
-documentary in v0.3; Wall intentionally does not install background jobs on your machine.
+documentary in v0.4; Wall intentionally does not install background jobs on your machine.
 
 ## Philosophy
 

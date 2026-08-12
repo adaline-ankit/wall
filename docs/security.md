@@ -24,3 +24,8 @@ non-loopback host unless the operator passes `--allow-network`; that flag is an 
 an access-control layer. Use an authenticated reverse proxy and transport encryption for any shared
 deployment. API responses carry a restrictive content security policy, anti-framing, MIME-sniffing,
 referrer, permissions, and no-store headers.
+
+For a hosted single-user service, set `WALL_APP_PASSWORD`. Optionally set `WALL_CAPTURE_TOKEN` to
+let a browser extension or inbound-email gateway POST only to the two capture endpoints. Bearer-token
+requests cannot read entries, notes, tasks, drafts, exports, or Wall configuration; keep the token in
+the connector's secret store and rotate it after compromise.

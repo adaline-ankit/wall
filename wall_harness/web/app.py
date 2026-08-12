@@ -111,10 +111,15 @@ def create_app(
     app = FastAPI(title="Wall", docs_url="/api/docs", redoc_url=None)
     app.mount("/static", StaticFiles(directory=static_path), name="static")
     app_password = os.getenv("WALL_APP_PASSWORD")
+    capture_token = os.getenv("WALL_CAPTURE_TOKEN")
+    capture_paths = {
+        "/api/reading/captures/browser",
+        "/api/reading/captures/email",
+    }
 
     def has_valid_password(request: Request) -> bool:
         if not app_password:
-            return True
+            return False
         authorization = request.headers.get("Authorization", "")
         scheme, _, encoded = authorization.partition(" ")
         if scheme.lower() != "basic" or not encoded:
@@ -126,19 +131,40 @@ def create_app(
         username, separator, password = decoded.partition(":")
         return bool(separator and username) and secrets.compare_digest(password, app_password)
 
+    def has_valid_capture_token(request: Request) -> bool:
+        if not capture_token:
+            return False
+        scheme, _, token = request.headers.get("Authorization", "").partition(" ")
+        return (
+            bool(token)
+            and scheme.lower() == "bearer"
+            and secrets.compare_digest(token, capture_token)
+        )
+
+    def is_capture_request(request: Request) -> bool:
+        return request.method == "POST" and request.url.path in capture_paths
+
     @app.middleware("http")
     async def password_protection(request: Request, call_next: RequestResponseEndpoint) -> Response:
         is_public_asset = request.url.path.startswith("/static/")
         is_public_post = request.url.path.startswith("/read/")
-        if (
-            request.url.path != "/healthz"
-            and not is_public_asset
-            and not is_public_post
-            and not has_valid_password(request)
-        ):
+        capture_request = is_capture_request(request)
+        private_request = (
+            request.url.path != "/healthz" and not is_public_asset and not is_public_post
+        )
+        capture_authorized = capture_request and has_valid_capture_token(request)
+        password_authorized = has_valid_password(request)
+        capture_token_required = capture_request and bool(capture_token)
+        should_reject = private_request and not (
+            capture_authorized
+            or password_authorized
+            or (not app_password and not capture_token_required)
+        )
+        if should_reject:
+            authentication_header = "Bearer" if capture_token_required else 'Basic realm="Margin"'
             return Response(
                 status_code=401,
-                headers={"WWW-Authenticate": 'Basic realm="Margin"'},
+                headers={"WWW-Authenticate": authentication_header},
             )
         return await call_next(request)
 

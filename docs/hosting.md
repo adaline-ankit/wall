@@ -43,21 +43,21 @@ durable later, upgrade the service and attach a persistent disk at `/var/data`.
 
 ## Inbound capture contracts
 
-The user interface supports manual saves now. The service also exposes simple JSON endpoints so a browser extension or email-forwarding gateway can use the same inbox:
+The user interface supports manual saves now. The service also exposes simple JSON endpoints so a browser extension or email-forwarding gateway can use the same inbox. Set a long random `WALL_CAPTURE_TOKEN` to give those connectors a write-only credential; it cannot open the private app or read the library.
 
 ```bash
-curl -u margin:"$WALL_APP_PASSWORD" \
+curl -H "Authorization: Bearer $WALL_CAPTURE_TOKEN" \
   -H 'content-type: application/json' \
   -d '{"title":"Useful paper","url":"https://example.com/paper","source":"Browser"}' \
   http://127.0.0.1:8765/api/reading/captures/browser
 
-curl -u margin:"$WALL_APP_PASSWORD" \
+curl -H "Authorization: Bearer $WALL_CAPTURE_TOKEN" \
   -H 'content-type: application/json' \
   -d '{"subject":"Read later","sender":"me@example.com","body":"https://example.com/paper"}' \
   http://127.0.0.1:8765/api/reading/captures/email
 ```
 
-An email provider or browser extension still needs to be configured to call these endpoints. Keep that integration behind an authenticated proxy; never put the Basic-auth password into a public browser extension.
+The owner can still use Basic authentication for the same endpoints. An email provider or browser extension still needs to be configured to call them; never put the Basic-auth password into a public browser extension. Rotate the capture token after a connector is lost or compromised.
 
 ## Health check
 
