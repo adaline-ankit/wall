@@ -1,0 +1,31 @@
+name: Refresh hosted Margin
+
+on:
+  schedule:
+    # 03:30 UTC is 09:00 India Standard Time. GitHub may delay scheduled jobs under load.
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: margin-daily-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: ${{ vars.MARGIN_REFRESH_URL != '' && secrets.MARGIN_REFRESH_TOKEN != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      MARGIN_REFRESH_URL: ${{ vars.MARGIN_REFRESH_URL }}
+      MARGIN_REFRESH_TOKEN: ${{ secrets.MARGIN_REFRESH_TOKEN }}
+    steps:
+      - name: Refresh the deterministic Wall inbox
+        run: |
+          curl --fail --show-error --silent --retry 3 --retry-all-errors \
+            --connect-timeout 20 --max-time 90 \
+            -X POST "$MARGIN_REFRESH_URL/api/reading/refresh" \
+            -H "Authorization: Bearer $MARGIN_REFRESH_TOKEN" \
+            -H "content-type: application/json" \
+            --data '{"use_llm":false}'

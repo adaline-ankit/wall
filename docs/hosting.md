@@ -82,6 +82,19 @@ curl -X POST -H "Authorization: Bearer $WALL_REFRESH_TOKEN" \
   https://margin.example.com/api/reading/refresh
 ```
 
+For a simple hosted setup, this repository includes
+[`.github/workflows/daily-refresh.yml`](../.github/workflows/daily-refresh.yml). It runs at 09:00
+India Standard Time and can also be started manually. In the repository's **Settings → Secrets and
+variables → Actions**, create:
+
+- Variable `MARGIN_REFRESH_URL` with the service root, such as
+  `https://margin-reading-ankit.onrender.com`.
+- Secret `MARGIN_REFRESH_TOKEN` with the matching `WALL_REFRESH_TOKEN` value from the service
+  environment.
+
+The workflow skips cleanly until both values exist, uses only the scoped token, retries a sleeping
+free-tier service, and always sends `use_llm:false`.
+
 ## Health check
 
 `GET /healthz` returns `{"status":"ok"}` and is intentionally unauthenticated so a local container health check can use it.

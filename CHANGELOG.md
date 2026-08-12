@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0 — 2026-08-12
+
+- Add an opt-in GitHub Actions daily refresh workflow for hosted Margin instances.
+- Keep the job inert until its scoped URL variable and refresh-token secret are configured; it uses
+  retries for free-tier cold starts and never receives the Margin password.
+
 ## 0.6.0 — 2026-08-12
 
 - Add `WALL_REFRESH_TOKEN`, a narrow scheduler credential that can refresh the selected Wall and
